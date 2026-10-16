@@ -30,6 +30,6 @@ Since VS Code extensions cannot directly inject squiggly lines into sidebar chat
 ---
 
 ## 📦 Current Release
-* Current version: **`0.2.5`**
-* Package file: **`ai-chat-spell-assistant-0.2.5.vsix`**
-* Test command: `code --install-extension ai-chat-spell-assistant-0.2.5.vsix --force`
+* Current version: **`0.2.6`**
+* Package file: **`ai-chat-spell-assistant-0.2.6.vsix`**
+* Test command: `code --install-extension ai-chat-spell-assistant-0.2.6.vsix --force`

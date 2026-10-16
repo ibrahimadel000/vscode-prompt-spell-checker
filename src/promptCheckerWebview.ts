@@ -126,19 +126,15 @@ export class PromptCheckerPanel {
                         this._currentText = message.text;
                         await vscode.env.clipboard.writeText(message.text);
 
-                        if (this._targetEditor && this._targetRange) {
-                            await this._targetEditor.edit(editBuilder => {
-                                editBuilder.replace(this._targetRange!, message.text);
-                            });
-                            this.dispose();
-                            vscode.window.showInformationMessage('⚡ Fixed & replaced in editor!');
-                        } else {
-                            // Close webview panel so focus immediately returns to AI Chat box / previously focused element
-                            this.dispose();
-                            await new Promise(resolve => setTimeout(resolve, 80));
-                            await SelectionCapture.pasteToOS(30);
-                            vscode.window.showInformationMessage('⚡ Fixed & pasted back into chat!');
-                        }
+                        // Close webview panel
+                        this.dispose();
+
+                        // Short wait for webview panel to close
+                        await new Promise(resolve => setTimeout(resolve, 80));
+
+                        // Focus the AI Chat box and paste the clean prompt
+                        await SelectionCapture.pasteToChat(30);
+                        vscode.window.showInformationMessage('⚡ Fixed & pasted back into chat!');
                         break;
                     }
                     case 'addWord': {
