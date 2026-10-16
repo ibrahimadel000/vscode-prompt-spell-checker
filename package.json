@@ -1,0 +1,173 @@
+{
+  "name": "ai-chat-spell-assistant",
+  "displayName": "AI Chat Spell Assistant",
+  "description": "Smart spell-checker for AI coding assistant prompts. Select text or copy, review misspellings in an interactive box, and copy clean text directly into chat.",
+  "version": "0.2.5",
+  "publisher": "ibrahimadel",
+  "engines": { "vscode": "^1.85.0" },
+  "categories": ["Other", "Linters"],
+  "keywords": ["spell", "spellcheck", "typo", "ai", "chat", "copilot", "codex", "antigravity", "prompt"],
+  "activationEvents": ["onStartupFinished"],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "spellAssistant.quickFixWord",
+        "title": "Quick Fix Typos at Cursor (Suggestions Menu)",
+        "category": "Spell Assistant",
+        "icon": "$(sparkle)"
+      },
+      {
+        "command": "spellAssistant.openPromptChecker",
+        "title": "Open Prompt Spell Checker (Interactive Text Box)",
+        "category": "Spell Assistant",
+        "icon": "$(sparkle)"
+      },
+      {
+        "command": "spellAssistant.quickFixAndCopy",
+        "title": "Quick Fix Typos & Copy Clean Prompt",
+        "category": "Spell Assistant",
+        "icon": "$(zap)"
+      },
+      {
+        "command": "spellAssistant.scanDocument",
+        "title": "Scan Document for Typos",
+        "category": "Spell Assistant"
+      },
+      {
+        "command": "spellAssistant.quickFixAll",
+        "title": "Quick Fix All Typos in Editor",
+        "category": "Spell Assistant"
+      },
+      {
+        "command": "spellAssistant.toggle",
+        "title": "Toggle Spell Checking",
+        "category": "Spell Assistant"
+      },
+      {
+        "command": "spellAssistant.addWord",
+        "title": "Add Word to Dictionary",
+        "category": "Spell Assistant"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "spellAssistant.quickFixWord",
+          "group": "1_modification@1"
+        },
+        {
+          "command": "spellAssistant.openPromptChecker",
+          "group": "1_modification@2"
+        },
+        {
+          "command": "spellAssistant.quickFixAndCopy",
+          "when": "editorHasSelection",
+          "group": "1_modification@3"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "spellAssistant.openPromptChecker",
+          "group": "navigation",
+          "when": "true"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "spellAssistant.quickFixWord",
+        "key": "alt+q"
+      },
+      {
+        "command": "spellAssistant.openPromptChecker",
+        "key": "ctrl+alt+s"
+      },
+      {
+        "command": "spellAssistant.openPromptChecker",
+        "key": "shift+alt+q"
+      },
+      {
+        "command": "spellAssistant.quickFixAndCopy",
+        "key": "alt+w"
+      }
+    ],
+    "configuration": {
+      "title": "AI Chat Spell Assistant",
+      "properties": {
+        "spellAssistant.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable or disable spell checking."
+        },
+        "spellAssistant.checkOnType": {
+          "type": "boolean",
+          "default": true,
+          "description": "Check spelling in real-time as you type in documents."
+        },
+        "spellAssistant.debounceMs": {
+          "type": "number",
+          "default": 300,
+          "description": "Delay in ms before checking after typing."
+        },
+        "spellAssistant.extraKnownWords": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": [],
+          "description": "Additional words to treat as correctly spelled."
+        },
+        "spellAssistant.targetLanguages": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": ["markdown", "plaintext", "git-commit", "scminput"],
+          "description": "Language IDs of documents to spell-check."
+        },
+        "spellAssistant.ignoreCamelCase": {
+          "type": "boolean",
+          "default": true,
+          "description": "Skip camelCase and snake_case identifiers."
+        },
+        "spellAssistant.ignoreCodeBlocks": {
+          "type": "boolean",
+          "default": true,
+          "description": "Skip fenced and inline code blocks."
+        },
+        "spellAssistant.ignoreUrls": {
+          "type": "boolean",
+          "default": true,
+          "description": "Skip URLs and email addresses."
+        },
+        "spellAssistant.ignoreFilePaths": {
+          "type": "boolean",
+          "default": true,
+          "description": "Skip file paths."
+        },
+        "spellAssistant.ignoreAllCaps": {
+          "type": "boolean",
+          "default": true,
+          "description": "Skip ALL_CAPS words."
+        },
+        "spellAssistant.maxSuggestions": {
+          "type": "number",
+          "default": 5,
+          "description": "Maximum number of suggestions to show."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "package": "npx @vscode/vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "^5.4.0"
+  },
+  "dependencies": {
+    "nspell": "^2.1.5",
+    "dictionary-en": "^4.0.0"
+  }
+}
