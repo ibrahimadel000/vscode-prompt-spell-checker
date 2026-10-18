@@ -64,6 +64,7 @@ function getConfig() {
         ignoreFilePaths: cfg.get('ignoreFilePaths', true),
         ignoreAllCaps: cfg.get('ignoreAllCaps', true),
         maxSuggestions: cfg.get('maxSuggestions', 5),
+        diagnosticSeverity: cfg.get('diagnosticSeverity', 'error'),
     };
 }
 async function activate(context) {

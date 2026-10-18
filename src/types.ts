@@ -22,6 +22,7 @@ export interface ExtensionConfig {
     ignoreFilePaths: boolean;
     ignoreAllCaps: boolean;
     maxSuggestions: number;
+    diagnosticSeverity?: 'error' | 'warning' | 'information';
 }
 
 export const DEFAULT_DEV_WORDS: string[] = [

@@ -191,12 +191,19 @@ class PromptCheckerPanel {
             --sec-bg: var(--vscode-button-secondaryBackground, #3a3d41);
             --sec-hover: var(--vscode-button-secondaryHoverBackground, #45494e);
             --sec-fg: var(--vscode-button-secondaryForeground, #ffffff);
+            --menu-bg: var(--vscode-menu-background, #252526);
+            --menu-fg: var(--vscode-menu-foreground, #cccccc);
+            --menu-border: var(--vscode-menu-border, #454545);
+            --menu-hover: var(--vscode-menu-selectionBackground, #094771);
+            --menu-hover-fg: var(--vscode-menu-selectionForeground, #ffffff);
             --badge-bg: rgba(235, 87, 87, 0.15);
             --badge-border: rgba(235, 87, 87, 0.5);
             --badge-fg: #ff6b6b;
             --sugg-bg: rgba(0, 122, 204, 0.15);
             --sugg-border: rgba(0, 122, 204, 0.4);
             --sugg-fg: #61afef;
+            --typo-red: #ff4d4f;
+            --typo-bg: rgba(255, 77, 79, 0.14);
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -211,12 +218,16 @@ class PromptCheckerPanel {
             flex-direction: column;
             gap: 12px;
             height: 100vh;
+            overflow: hidden;
+            user-select: none;
         }
 
+        /* ── Header ─────────────────────────────────────────────── */
         .header {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            flex-shrink: 0;
         }
 
         .title {
@@ -234,7 +245,10 @@ class PromptCheckerPanel {
             font-weight: 500;
             background: var(--sec-bg);
             color: var(--fg);
-            transition: all 0.2s;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
         }
 
         .status-badge.has-errors {
@@ -249,38 +263,94 @@ class PromptCheckerPanel {
             border: 1px solid rgba(46, 204, 113, 0.4);
         }
 
-        .textarea-container {
+        /* ── Interactive Google Speller Editor Container ─────────── */
+        .editor-container {
+            position: relative;
             flex: 1;
-            display: flex;
-            flex-direction: column;
-            min-height: 120px;
+            min-height: 150px;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.25);
+            overflow: hidden;
+            transition: border-color 0.2s, box-shadow 0.2s;
         }
 
-        textarea {
+        .editor-container:focus-within {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 1px var(--accent), inset 0 1px 3px rgba(0, 0, 0, 0.25);
+        }
+
+        .editor-backdrop,
+        textarea#promptInput {
+            position: absolute;
+            top: 0;
+            left: 0;
             width: 100%;
             height: 100%;
-            min-height: 120px;
-            background: var(--card-bg);
+            margin: 0;
+            padding: 14px 16px;
+            box-sizing: border-box;
+            font-family: var(--vscode-editor-font-family, Consolas, 'Segoe UI', monospace);
+            font-size: 14px;
+            line-height: 1.6;
+            letter-spacing: 0px;
+            white-space: pre-wrap;
+            word-break: break-word;
+            overflow-wrap: break-word;
+            tab-size: 4;
+        }
+
+        .editor-backdrop {
+            pointer-events: none;
+            overflow: hidden;
+            z-index: 1;
+            color: transparent;
+        }
+
+        .editor-highlights {
+            width: 100%;
+            box-sizing: border-box;
+            color: transparent;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* 🔴 Google Speller Red Wavy Squiggly Underline */
+        .editor-highlights mark.misspelled {
+            color: transparent;
+            background-color: var(--typo-bg);
+            text-decoration: underline wavy var(--typo-red) 2px;
+            -webkit-text-decoration: underline wavy var(--typo-red) 2px;
+            border-bottom: 2px wavy var(--typo-red);
+            border-radius: 3px;
+            padding: 1px 0;
+            cursor: pointer;
+            transition: background-color 0.15s ease;
+        }
+
+        .editor-highlights mark.misspelled.active-hover {
+            background-color: rgba(255, 77, 79, 0.32);
+        }
+
+        textarea#promptInput {
+            z-index: 2;
+            background: transparent;
             color: var(--fg);
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            padding: 12px;
-            font-family: inherit;
-            font-size: 13px;
-            line-height: 1.5;
-            resize: none;
+            border: none;
             outline: none;
-            transition: border-color 0.2s;
+            resize: none;
+            overflow-y: auto;
+            caret-color: var(--fg);
+            user-select: text;
         }
 
-        textarea:focus {
-            border-color: var(--accent);
-        }
-
+        /* ── Action Buttons ──────────────────────────────────────── */
         .actions-bar {
             display: flex;
             gap: 8px;
             flex-wrap: wrap;
+            flex-shrink: 0;
         }
 
         button {
@@ -288,12 +358,12 @@ class PromptCheckerPanel {
             align-items: center;
             gap: 6px;
             padding: 8px 14px;
-            border-radius: 4px;
+            border-radius: 5px;
             border: none;
             font-size: 12px;
             font-weight: 500;
             cursor: pointer;
-            transition: background 0.15s, transform 0.05s;
+            transition: background 0.15s, transform 0.05s, opacity 0.15s;
         }
 
         button:active {
@@ -301,12 +371,13 @@ class PromptCheckerPanel {
         }
 
         .btn-primary {
-            background: var(--accent);
-            color: var(--btn-fg);
+            background: #2ecc71;
+            color: #000;
+            font-weight: 600;
         }
 
         .btn-primary:hover {
-            background: var(--accent-hover);
+            background: #27ae60;
         }
 
         .btn-secondary {
@@ -318,16 +389,31 @@ class PromptCheckerPanel {
             background: var(--sec-hover);
         }
 
+        .btn-clear {
+            margin-left: auto;
+            background: transparent;
+            color: var(--fg);
+            opacity: 0.6;
+            border: 1px solid var(--border);
+        }
+
+        .btn-clear:hover {
+            opacity: 1;
+            background: var(--sec-bg);
+        }
+
+        /* ── Issues Overview Panel ───────────────────────────────── */
         .issues-panel {
             background: var(--card-bg);
             border: 1px solid var(--border);
             border-radius: 6px;
-            padding: 12px;
-            max-height: 230px;
+            padding: 10px 12px;
+            max-height: 180px;
             overflow-y: auto;
             display: flex;
             flex-direction: column;
             gap: 8px;
+            flex-shrink: 0;
         }
 
         .issues-header {
@@ -337,16 +423,30 @@ class PromptCheckerPanel {
             opacity: 0.8;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .issues-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
         }
 
         .issue-card {
             display: flex;
             flex-direction: column;
             gap: 6px;
-            padding: 8px 10px;
+            padding: 7px 10px;
             background: rgba(0, 0, 0, 0.2);
             border-radius: 5px;
             border-left: 3px solid var(--badge-fg);
+            transition: background 0.15s;
+        }
+
+        .issue-card:hover {
+            background: rgba(255, 255, 255, 0.03);
         }
 
         .issue-word-row {
@@ -359,6 +459,11 @@ class PromptCheckerPanel {
             font-weight: 600;
             color: var(--badge-fg);
             text-decoration: underline wavy var(--badge-fg);
+            cursor: pointer;
+        }
+
+        .issue-word:hover {
+            opacity: 0.85;
         }
 
         .issue-btn-dict {
@@ -386,11 +491,14 @@ class PromptCheckerPanel {
             background: var(--sugg-bg);
             color: var(--sugg-fg);
             border: 1px solid var(--sugg-border);
-            padding: 4px 10px;
+            padding: 3px 10px;
             border-radius: 14px;
             font-size: 12px;
             cursor: pointer;
             transition: all 0.15s;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
         }
 
         .sugg-chip:hover {
@@ -401,39 +509,185 @@ class PromptCheckerPanel {
         }
 
         .empty-state {
-            padding: 16px;
+            padding: 12px;
             text-align: center;
             color: var(--fg);
             opacity: 0.7;
             font-size: 12px;
         }
 
+        /* ── Google Speller Floating Context Menu ─────────────────── */
+        .speller-context-menu {
+            position: fixed;
+            z-index: 10000;
+            min-width: 220px;
+            max-width: 320px;
+            background: var(--menu-bg);
+            color: var(--menu-fg);
+            border: 1px solid var(--menu-border);
+            border-radius: 8px;
+            box-shadow: 0 12px 36px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(14px);
+            padding: 6px;
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            font-size: 12px;
+            animation: menuPopIn 0.12s cubic-bezier(0.16, 1, 0.3, 1);
+            transform-origin: top left;
+        }
+
+        @keyframes menuPopIn {
+            from {
+                opacity: 0;
+                transform: scale(0.94) translateY(-4px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        .menu-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 6px 8px 4px 8px;
+        }
+
+        .menu-typo-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            background: rgba(235, 87, 87, 0.15);
+            border: 1px solid rgba(235, 87, 87, 0.4);
+            color: #ff6b6b;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .menu-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            opacity: 0.6;
+        }
+
+        .menu-suggestions-list {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            max-height: 180px;
+            overflow-y: auto;
+        }
+
+        .menu-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            padding: 7px 10px;
+            border-radius: 5px;
+            background: transparent;
+            color: inherit;
+            border: none;
+            font-family: inherit;
+            font-size: 12.5px;
+            cursor: pointer;
+            text-align: left;
+            transition: background 0.1s, transform 0.08s;
+        }
+
+        .menu-item:hover,
+        .menu-item.active {
+            background: var(--menu-hover);
+            color: var(--menu-hover-fg);
+        }
+
+        .suggestion-item {
+            font-weight: 600;
+        }
+
+        .sugg-left {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+
+        .sugg-icon {
+            font-size: 12px;
+            color: #2ecc71;
+        }
+
+        .sugg-tag {
+            font-size: 10px;
+            opacity: 0.6;
+            font-weight: normal;
+        }
+
+        .menu-divider {
+            height: 1px;
+            background: var(--border);
+            margin: 4px 2px;
+            opacity: 0.6;
+        }
+
+        .action-item {
+            opacity: 0.85;
+            font-size: 11.5px;
+            font-weight: normal;
+        }
+
+        .action-item:hover {
+            opacity: 1;
+        }
+
+        .action-left {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .no-suggestions-text {
+            padding: 8px 10px;
+            opacity: 0.6;
+            font-style: italic;
+            font-size: 11px;
+        }
+
+        /* ── Footer Tips & Toast ─────────────────────────────────── */
+        .footer-tips {
+            font-size: 11px;
+            opacity: 0.7;
+            display: flex;
+            justify-content: space-between;
+            flex-shrink: 0;
+            padding-top: 2px;
+        }
+
         .toast {
             position: fixed;
-            bottom: 20px;
+            bottom: 24px;
             left: 50%;
             transform: translateX(-50%) translateY(40px);
             background: #2ecc71;
             color: #000;
             font-weight: 600;
             font-size: 12px;
-            padding: 6px 16px;
+            padding: 7px 18px;
             border-radius: 20px;
             opacity: 0;
             pointer-events: none;
             transition: all 0.25s ease;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+            z-index: 20000;
         }
 
         .toast.show {
             opacity: 1;
             transform: translateX(-50%) translateY(0);
-        }
-
-        .footer-tips {
-            font-size: 11px;
-            opacity: 0.6;
-            display: flex;
-            justify-content: space-between;
         }
     </style>
 </head>
@@ -445,35 +699,80 @@ class PromptCheckerPanel {
         <div id="statusBadge" class="status-badge clean">✅ No typos found</div>
     </div>
 
-    <div class="textarea-container">
-        <textarea id="promptInput" placeholder="Type or paste your AI prompt here... (e.g. I dont knw what hapened here)"></textarea>
+    <!-- 🎯 Interactive Google Speller Editor -->
+    <div class="editor-container" id="editorContainer">
+        <div class="editor-backdrop" id="editorBackdrop">
+            <div class="editor-highlights" id="editorHighlights"></div>
+        </div>
+        <textarea
+            id="promptInput"
+            placeholder="Type or paste your AI prompt here... (e.g. I dont knw what hapened here)"
+            spellcheck="false"
+            autocomplete="off"
+            autocorrect="off"
+            autocapitalize="off"
+        ></textarea>
     </div>
 
+    <!-- ⚡ Action Buttons -->
     <div class="actions-bar">
-        <button id="btnFixAndPaste" class="btn-primary" style="background: #2ecc71; color: #000; font-weight: 600;" title="Auto-fix typos and paste directly back into AI Chat box (Ctrl+Shift+Enter)">
+        <button id="btnFixAndPaste" class="btn-primary" title="Auto-fix typos and paste directly back into AI Chat box (Ctrl+Shift+Enter)">
             ⚡ Fix & Paste to Chat
         </button>
         <button id="btnCopy" class="btn-secondary" title="Copy clean prompt to clipboard (Ctrl+Enter)">
             📋 Copy Clean Prompt
         </button>
-        <button id="btnAutoFix" class="btn-secondary" title="Fix all typos automatically and copy">
-            ✨ Auto-Fix All & Copy
+        <button id="btnAutoFix" class="btn-secondary" title="Fix all typos automatically in the editor">
+            ✨ Auto-Fix All
         </button>
         <button id="btnReplaceEditor" class="btn-secondary" style="display:none;" title="Replace in code editor">
             🔄 Replace in Editor
         </button>
+        <button id="btnClear" class="btn-clear" title="Clear text">
+            🗑️ Clear
+        </button>
     </div>
 
+    <!-- 📋 Misspellings Overview Panel -->
     <div class="issues-panel" id="issuesPanel">
-        <div class="issues-header">Misspellings & Suggestions</div>
-        <div id="issuesList">
+        <div class="issues-header">
+            <span>Misspellings & Quick Fixes</span>
+            <span id="issuesCount" style="font-size: 10px; opacity: 0.6;">0 typos</span>
+        </div>
+        <div id="issuesList" class="issues-list">
             <div class="empty-state">No spelling mistakes detected. Your prompt is ready!</div>
         </div>
     </div>
 
+    <!-- 💡 Footer Tips -->
     <div class="footer-tips">
+        <span>⚡ <b>Right-click</b> (or click) any red wavy word to fix like Google Speller</span>
         <span>⚡ <b>Ctrl+Shift+Enter</b> fixes & pastes directly to AI Chat</span>
-        <span>📋 <b>Ctrl+Enter</b> copies clean prompt</span>
+    </div>
+
+    <!-- 🌟 Google Speller Floating Context Menu -->
+    <div id="spellerContextMenu" class="speller-context-menu" style="display: none;">
+        <div class="menu-header">
+            <div class="menu-typo-pill">
+                <span>❌</span>
+                <span id="menuTypoWord">word</span>
+            </div>
+            <span class="menu-label">Suggestions</span>
+        </div>
+        <div id="menuSuggestionsList" class="menu-suggestions-list"></div>
+        <div class="menu-divider"></div>
+        <button id="menuBtnAddDict" class="menu-item action-item">
+            <div class="action-left">
+                <span>➕</span>
+                <span>Add "<span id="menuDictWord">word</span>" to dictionary</span>
+            </div>
+        </button>
+        <button id="menuBtnIgnore" class="menu-item action-item">
+            <div class="action-left">
+                <span>👁️</span>
+                <span>Ignore word</span>
+            </div>
+        </button>
     </div>
 
     <div id="toast" class="toast">📋 Copied to clipboard!</div>
@@ -481,15 +780,29 @@ class PromptCheckerPanel {
     <script>
         const vscode = acquireVsCodeApi();
         const textarea = document.getElementById('promptInput');
+        const editorBackdrop = document.getElementById('editorBackdrop');
+        const editorHighlights = document.getElementById('editorHighlights');
         const statusBadge = document.getElementById('statusBadge');
         const issuesList = document.getElementById('issuesList');
+        const issuesCount = document.getElementById('issuesCount');
         const btnFixAndPaste = document.getElementById('btnFixAndPaste');
         const btnCopy = document.getElementById('btnCopy');
         const btnAutoFix = document.getElementById('btnAutoFix');
         const btnReplaceEditor = document.getElementById('btnReplaceEditor');
+        const btnClear = document.getElementById('btnClear');
         const toast = document.getElementById('toast');
 
+        // Context Menu elements
+        const spellerContextMenu = document.getElementById('spellerContextMenu');
+        const menuTypoWord = document.getElementById('menuTypoWord');
+        const menuDictWord = document.getElementById('menuDictWord');
+        const menuSuggestionsList = document.getElementById('menuSuggestionsList');
+        const menuBtnAddDict = document.getElementById('menuBtnAddDict');
+        const menuBtnIgnore = document.getElementById('menuBtnIgnore');
+
         let currentMisspellings = [];
+        let ignoredWords = new Set();
+        let activeMisspelling = null;
         let debounceTimer = null;
 
         function showToast(text) {
@@ -498,13 +811,287 @@ class PromptCheckerPanel {
             setTimeout(() => toast.classList.remove('show'), 1500);
         }
 
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        // ── Synchronize Backdrop Dimensions & Scroll ─────────────
+        function syncSizeAndScroll() {
+            editorHighlights.style.width = textarea.clientWidth + 'px';
+            editorBackdrop.scrollTop = textarea.scrollTop;
+            editorBackdrop.scrollLeft = textarea.scrollLeft;
+        }
+
+        textarea.addEventListener('scroll', syncSizeAndScroll);
+        window.addEventListener('resize', syncSizeAndScroll);
+
+        // ── Render Red Wavy Squigglies in Backdrop ────────────────
+        function renderHighlights() {
+            const text = textarea.value;
+            syncSizeAndScroll();
+
+            if (!text) {
+                editorHighlights.innerHTML = '';
+                return;
+            }
+
+            // Filter out ignored words
+            const activeErrors = currentMisspellings.filter(m => !ignoredWords.has(m.word.toLowerCase()));
+
+            if (activeErrors.length === 0) {
+                editorHighlights.innerHTML = escapeHtml(text);
+                return;
+            }
+
+            // Sort by start index ascending
+            const sorted = [...activeErrors].sort((a, b) => a.start - b.start);
+
+            let html = '';
+            let lastIndex = 0;
+
+            for (let i = 0; i < sorted.length; i++) {
+                const m = sorted[i];
+                if (m.start < lastIndex || m.start >= text.length) continue;
+
+                // Safe check that target slice corresponds to word
+                const slice = text.slice(m.start, m.end);
+                if (slice.toLowerCase() !== m.word.toLowerCase()) {
+                    continue;
+                }
+
+                // Append normal text before typo
+                html += escapeHtml(text.slice(lastIndex, m.start));
+
+                // Append typo with red wavy squiggly mark
+                html += '<mark class="misspelled" data-start="' + m.start + '" data-end="' + m.end + '" data-word="' + escapeHtml(m.word) + '">' + escapeHtml(slice) + '</mark>';
+
+                lastIndex = m.end;
+            }
+
+            html += escapeHtml(text.slice(lastIndex));
+
+            // Extra newline if text ends with newline for scroll parity
+            if (text.endsWith('\\n')) {
+                html += '\\n';
+            }
+
+            editorHighlights.innerHTML = html;
+        }
+
+        // ── Real-time Input Checking ──────────────────────────────
         textarea.addEventListener('input', () => {
+            renderHighlights();
             clearTimeout(debounceTimer);
             debounceTimer = setTimeout(() => {
                 vscode.postMessage({ command: 'checkText', text: textarea.value });
-            }, 180);
+            }, 160);
         });
 
+        // ── Find Misspelling at Point or Offset ───────────────────
+        function findMisspelling(clientX, clientY, textOffset) {
+            // 1. Precise DOM bounding box check
+            const marks = editorHighlights.querySelectorAll('mark.misspelled');
+            for (const mark of marks) {
+                const rect = mark.getBoundingClientRect();
+                if (
+                    clientX >= rect.left - 4 && clientX <= rect.right + 4 &&
+                    clientY >= rect.top - 4 && clientY <= rect.bottom + 6
+                ) {
+                    const start = parseInt(mark.getAttribute('data-start'), 10);
+                    const end = parseInt(mark.getAttribute('data-end'), 10);
+                    const found = currentMisspellings.find(m => m.start === start && m.end === end);
+                    if (found && !ignoredWords.has(found.word.toLowerCase())) {
+                        return { misspelling: found, rect };
+                    }
+                }
+            }
+
+            // 2. Cursor index offset fallback
+            if (typeof textOffset === 'number' && textOffset >= 0) {
+                for (const m of currentMisspellings) {
+                    if (ignoredWords.has(m.word.toLowerCase())) continue;
+                    if (textOffset >= m.start && textOffset <= m.end) {
+                        const mark = editorHighlights.querySelector('mark[data-start="' + m.start + '"][data-end="' + m.end + '"]');
+                        const rect = mark ? mark.getBoundingClientRect() : null;
+                        return { misspelling: m, rect };
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        // ── Google Speller Context Menu ───────────────────────────
+        function showContextMenu(clickX, clickY, misspelling, rect) {
+            activeMisspelling = misspelling;
+
+            menuTypoWord.textContent = misspelling.word;
+            menuDictWord.textContent = misspelling.word;
+
+            // Render suggestions
+            menuSuggestionsList.innerHTML = '';
+            if (misspelling.suggestions && misspelling.suggestions.length > 0) {
+                misspelling.suggestions.slice(0, 5).forEach((sugg, idx) => {
+                    const btn = document.createElement('button');
+                    btn.className = 'menu-item suggestion-item' + (idx === 0 ? ' active' : '');
+                    btn.innerHTML =
+                        '<div class="sugg-left">' +
+                            '<span class="sugg-icon">✓</span>' +
+                            '<span>' + escapeHtml(sugg) + '</span>' +
+                        '</div>' +
+                        '<span class="sugg-tag">' + (idx === 0 ? 'Best match' : '') + '</span>';
+                    btn.onclick = (e) => {
+                        e.stopPropagation();
+                        applySuggestion(misspelling, sugg);
+                    };
+                    menuSuggestionsList.appendChild(btn);
+                });
+            } else {
+                const empty = document.createElement('div');
+                empty.className = 'no-suggestions-text';
+                empty.textContent = 'No suggestions found';
+                menuSuggestionsList.appendChild(empty);
+            }
+
+            spellerContextMenu.style.display = 'flex';
+
+            // Calculate position
+            const menuWidth = 230;
+            const menuHeight = spellerContextMenu.offsetHeight || 190;
+
+            let posX = clickX;
+            let posY = clickY + 6;
+
+            if (rect) {
+                posX = rect.left;
+                posY = rect.bottom + 4;
+                if (posY + menuHeight > window.innerHeight - 10) {
+                    posY = rect.top - menuHeight - 4;
+                }
+            }
+
+            // Keep within viewport bounds
+            if (posX + menuWidth > window.innerWidth - 10) {
+                posX = window.innerWidth - menuWidth - 10;
+            }
+            if (posX < 10) posX = 10;
+
+            if (posY + menuHeight > window.innerHeight - 10) {
+                posY = window.innerHeight - menuHeight - 10;
+            }
+            if (posY < 10) posY = 10;
+
+            spellerContextMenu.style.left = posX + 'px';
+            spellerContextMenu.style.top = posY + 'px';
+        }
+
+        function hideContextMenu() {
+            spellerContextMenu.style.display = 'none';
+            activeMisspelling = null;
+        }
+
+        // 🖱️ Right-Click to open Google Speller Context Menu
+        textarea.addEventListener('contextmenu', (e) => {
+            const cursorPos = textarea.selectionStart;
+            const match = findMisspelling(e.clientX, e.clientY, cursorPos);
+
+            if (match) {
+                e.preventDefault();
+                showContextMenu(e.clientX, e.clientY, match.misspelling, match.rect);
+            } else {
+                hideContextMenu();
+            }
+        });
+
+        // 🖱️ Left-Click on typo to also show suggestions (Google Docs style)
+        textarea.addEventListener('click', (e) => {
+            hideContextMenu();
+            setTimeout(() => {
+                if (textarea.selectionStart === textarea.selectionEnd) {
+                    const cursorPos = textarea.selectionStart;
+                    const match = findMisspelling(e.clientX, e.clientY, cursorPos);
+                    if (match) {
+                        showContextMenu(e.clientX, e.clientY, match.misspelling, match.rect);
+                    }
+                }
+            }, 50);
+        });
+
+        // 🖱️ Mouse move hover effect
+        textarea.addEventListener('mousemove', (e) => {
+            const match = findMisspelling(e.clientX, e.clientY);
+            const marks = editorHighlights.querySelectorAll('mark.misspelled');
+            marks.forEach(m => m.classList.remove('active-hover'));
+
+            if (match && match.rect) {
+                const activeMark = editorHighlights.querySelector('mark[data-start="' + match.misspelling.start + '"]');
+                if (activeMark) activeMark.classList.add('active-hover');
+            }
+        });
+
+        // Dismiss menu on click outside or Escape
+        document.addEventListener('click', (e) => {
+            if (!spellerContextMenu.contains(e.target) && e.target !== textarea) {
+                hideContextMenu();
+            }
+        });
+
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                hideContextMenu();
+            }
+        });
+
+        // ── Apply Suggestion / Replace Typo ───────────────────────
+        function applySuggestion(misspelling, replacement) {
+            const original = textarea.value;
+            const before = original.slice(0, misspelling.start);
+            const after = original.slice(misspelling.end);
+            const newText = before + replacement + after;
+            textarea.value = newText;
+
+            // Set cursor right after the replacement word
+            const newCursor = misspelling.start + replacement.length;
+            textarea.setSelectionRange(newCursor, newCursor);
+            textarea.focus();
+
+            hideContextMenu();
+            renderHighlights();
+
+            vscode.postMessage({ command: 'checkText', text: newText });
+            showToast('✨ Replaced "' + misspelling.word + '" with "' + replacement + '"');
+        }
+
+        // ── Menu Action Buttons ───────────────────────────────────
+        menuBtnAddDict.addEventListener('click', () => {
+            if (activeMisspelling) {
+                const word = activeMisspelling.word;
+                ignoredWords.add(word.toLowerCase());
+                hideContextMenu();
+                vscode.postMessage({ command: 'addWord', word });
+                showToast('Added "' + word + '" to dictionary');
+                vscode.postMessage({ command: 'checkText', text: textarea.value });
+            }
+        });
+
+        menuBtnIgnore.addEventListener('click', () => {
+            if (activeMisspelling) {
+                const word = activeMisspelling.word;
+                ignoredWords.add(word.toLowerCase());
+                hideContextMenu();
+                renderHighlights();
+                renderResults(currentMisspellings);
+                showToast('Ignored "' + word + '"');
+            }
+        });
+
+        // ── Keyboard Shortcuts ────────────────────────────────────
         textarea.addEventListener('keydown', (e) => {
             if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'Enter') {
                 e.preventDefault();
@@ -515,11 +1102,14 @@ class PromptCheckerPanel {
             }
         });
 
+        // ── Main Action Bar Handlers ──────────────────────────────
         btnFixAndPaste.addEventListener('click', () => {
             let text = textarea.value;
             let count = 0;
-            if (currentMisspellings.length > 0) {
-                const sorted = [...currentMisspellings].sort((a, b) => b.start - a.start);
+            const activeErrors = currentMisspellings.filter(m => !ignoredWords.has(m.word.toLowerCase()));
+
+            if (activeErrors.length > 0) {
+                const sorted = [...activeErrors].sort((a, b) => b.start - a.start);
                 for (const m of sorted) {
                     if (m.suggestions && m.suggestions.length > 0) {
                         text = text.slice(0, m.start) + m.suggestions[0] + text.slice(m.end);
@@ -539,7 +1129,7 @@ class PromptCheckerPanel {
 
         btnCopy.addEventListener('click', () => {
             vscode.postMessage({ command: 'copyToClipboard', text: textarea.value });
-            showToast('📋 Copied to clipboard!');
+            showToast('📋 Copied clean prompt!');
         });
 
         btnReplaceEditor.addEventListener('click', () => {
@@ -548,13 +1138,14 @@ class PromptCheckerPanel {
         });
 
         btnAutoFix.addEventListener('click', () => {
-            if (currentMisspellings.length === 0) {
+            const activeErrors = currentMisspellings.filter(m => !ignoredWords.has(m.word.toLowerCase()));
+            if (activeErrors.length === 0) {
                 btnCopy.click();
                 return;
             }
 
             let text = textarea.value;
-            const sorted = [...currentMisspellings].sort((a, b) => b.start - a.start);
+            const sorted = [...activeErrors].sort((a, b) => b.start - a.start);
             let count = 0;
             for (const m of sorted) {
                 if (m.suggestions && m.suggestions.length > 0) {
@@ -563,22 +1154,22 @@ class PromptCheckerPanel {
                 }
             }
             textarea.value = text;
-            vscode.postMessage({ command: 'copyToClipboard', text: textarea.value });
+            renderHighlights();
             vscode.postMessage({ command: 'checkText', text: textarea.value });
-            showToast('⚡ Fixed ' + count + ' typo(s) & copied!');
+            showToast('⚡ Auto-fixed ' + count + ' typo(s)!');
         });
 
-        function replaceWord(start, end, replacement) {
-            const text = textarea.value;
-            textarea.value = text.slice(0, start) + replacement + text.slice(end);
-            vscode.postMessage({ command: 'checkText', text: textarea.value });
-            showToast('Replaced with "' + replacement + '"');
-        }
+        btnClear.addEventListener('click', () => {
+            textarea.value = '';
+            currentMisspellings = [];
+            ignoredWords.clear();
+            renderHighlights();
+            renderResults([]);
+            textarea.focus();
+            showToast('Cleared');
+        });
 
-        function addToDict(word) {
-            vscode.postMessage({ command: 'addWord', word });
-        }
-
+        // ── Extension Messages ────────────────────────────────────
         window.addEventListener('message', event => {
             const msg = event.data;
             switch (msg.command) {
@@ -589,29 +1180,35 @@ class PromptCheckerPanel {
                     } else {
                         btnReplaceEditor.style.display = 'none';
                     }
+                    renderHighlights();
                     textarea.focus();
                     break;
                 case 'spellResults':
-                    renderResults(msg.misspellings || []);
+                    currentMisspellings = msg.misspellings || [];
+                    renderHighlights();
+                    renderResults(currentMisspellings);
                     break;
             }
         });
 
+        // ── Render Bottom Misspellings List ───────────────────────
         function renderResults(misspellings) {
-            currentMisspellings = misspellings;
+            const activeErrors = misspellings.filter(m => !ignoredWords.has(m.word.toLowerCase()));
             issuesList.innerHTML = '';
 
-            if (misspellings.length === 0) {
+            if (activeErrors.length === 0) {
                 statusBadge.textContent = '✅ No typos found';
                 statusBadge.className = 'status-badge clean';
-                issuesList.innerHTML = '<div class="empty-state">No spelling mistakes detected. Your prompt is ready!</div>';
+                issuesCount.textContent = '0 typos';
+                issuesList.innerHTML = '<div class="empty-state">No spelling mistakes detected. Your prompt is clean!</div>';
                 return;
             }
 
-            statusBadge.textContent = misspellings.length + ' typo(s) found';
+            statusBadge.textContent = activeErrors.length + ' typo(s) found';
             statusBadge.className = 'status-badge has-errors';
+            issuesCount.textContent = activeErrors.length + ' typo(s)';
 
-            misspellings.forEach(m => {
+            activeErrors.forEach(m => {
                 const card = document.createElement('div');
                 card.className = 'issue-card';
 
@@ -621,11 +1218,21 @@ class PromptCheckerPanel {
                 const wordLabel = document.createElement('span');
                 wordLabel.className = 'issue-word';
                 wordLabel.textContent = m.word;
+                wordLabel.title = 'Click to focus in editor';
+                wordLabel.onclick = () => {
+                    textarea.focus();
+                    textarea.setSelectionRange(m.start, m.end);
+                    syncSizeAndScroll();
+                };
 
                 const dictBtn = document.createElement('button');
                 dictBtn.className = 'issue-btn-dict';
-                dictBtn.textContent = '+ Add to Dictionary';
-                dictBtn.onclick = () => addToDict(m.word);
+                dictBtn.textContent = '+ Add to Dict';
+                dictBtn.onclick = () => {
+                    ignoredWords.add(m.word.toLowerCase());
+                    vscode.postMessage({ command: 'addWord', word: m.word });
+                    showToast('Added "' + m.word + '" to dictionary');
+                };
 
                 wordRow.appendChild(wordLabel);
                 wordRow.appendChild(dictBtn);
@@ -640,7 +1247,7 @@ class PromptCheckerPanel {
                         chip.className = 'sugg-chip';
                         chip.textContent = sugg;
                         chip.title = 'Click to replace with ' + sugg;
-                        chip.onclick = () => replaceWord(m.start, m.end, sugg);
+                        chip.onclick = () => applySuggestion(m, sugg);
                         suggRow.appendChild(chip);
                     });
                 } else {
@@ -656,7 +1263,7 @@ class PromptCheckerPanel {
             });
         }
 
-        // Notify extension that Webview is ready
+        // Notify extension that Webview DOM is ready
         vscode.postMessage({ command: 'ready' });
     </script>
 </body>

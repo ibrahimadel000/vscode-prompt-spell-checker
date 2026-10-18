@@ -85,6 +85,13 @@ export class DiagnosticsProvider implements vscode.Disposable {
         const text = doc.getText();
         const misspellings = this.engine.findMisspellings(text, config);
 
+        let severity = vscode.DiagnosticSeverity.Error;
+        if (config.diagnosticSeverity === 'warning') {
+            severity = vscode.DiagnosticSeverity.Warning;
+        } else if (config.diagnosticSeverity === 'information') {
+            severity = vscode.DiagnosticSeverity.Information;
+        }
+
         const diagnostics: vscode.Diagnostic[] = misspellings.map(m => {
             const startPos = doc.positionAt(m.start);
             const endPos = doc.positionAt(m.end);
@@ -93,7 +100,7 @@ export class DiagnosticsProvider implements vscode.Disposable {
             const diagnostic = new vscode.Diagnostic(
                 range,
                 `"${m.word}" may be misspelled`,
-                vscode.DiagnosticSeverity.Information
+                severity
             );
             diagnostic.source = DIAGNOSTIC_SOURCE;
             diagnostic.code = JSON.stringify(m.suggestions);

@@ -2,7 +2,7 @@
   "name": "ai-chat-spell-assistant",
   "displayName": "AI Chat Spell Assistant",
   "description": "Smart spell-checker for AI coding assistant prompts. Select text or copy, review misspellings in an interactive box, and copy clean text directly into chat.",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "publisher": "ibrahimadel",
   "engines": { "vscode": "^1.85.0" },
   "categories": ["Other", "Linters"],
@@ -151,6 +151,12 @@
           "type": "number",
           "default": 5,
           "description": "Maximum number of suggestions to show."
+        },
+        "spellAssistant.diagnosticSeverity": {
+          "type": "string",
+          "enum": ["error", "warning", "information"],
+          "default": "error",
+          "description": "Visual style for typos in editor tabs: 'error' (red squiggly line), 'warning' (yellow squiggly line), or 'information' (subtle dots)."
         }
       }
     }

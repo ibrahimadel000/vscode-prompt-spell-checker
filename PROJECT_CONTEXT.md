@@ -30,6 +30,11 @@ Since VS Code extensions cannot directly inject squiggly lines into sidebar chat
 ---
 
 ## 📦 Current Release
-* Current version: **`0.2.6`**
-* Package file: **`ai-chat-spell-assistant-0.2.6.vsix`**
-* Test command: `code --install-extension ai-chat-spell-assistant-0.2.6.vsix --force`
+* Current version: **`0.2.7`**
+* Package file: **`ai-chat-spell-assistant-0.2.7.vsix`**
+* Test command: `code --install-extension ai-chat-spell-assistant-0.2.7.vsix --force`
+* **New in v0.2.7 (Google Speller UI & Red Squigglies):**
+  - **Inline Red Wavy Underlines:** Misspelled words inside the Alt+Q Prompt Checker window now render with a signature red wavy squiggly line and soft background tint.
+  - **Google Speller Right-Click Context Menu:** Right-click directly on any red squiggly word to open a context menu showing spelling suggestions, quick replacement, `+ Add to dictionary`, and `Ignore`.
+  - **Click-to-Suggest (Google Docs style):** Left-clicking a typo also triggers the suggestion popup anchored directly at the word.
+  - **Native Editor Red Diagnostics:** Configurable `spellAssistant.diagnosticSeverity` defaults to `error` for classic red squigglies across editor tabs.

@@ -30,6 +30,7 @@ function getConfig(): ExtensionConfig {
         ignoreFilePaths: cfg.get<boolean>('ignoreFilePaths', true),
         ignoreAllCaps: cfg.get<boolean>('ignoreAllCaps', true),
         maxSuggestions: cfg.get<number>('maxSuggestions', 5),
+        diagnosticSeverity: cfg.get<'error' | 'warning' | 'information'>('diagnosticSeverity', 'error'),
     };
 }
 
