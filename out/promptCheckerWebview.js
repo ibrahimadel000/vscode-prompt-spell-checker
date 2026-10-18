@@ -281,7 +281,7 @@ class PromptCheckerPanel {
             box-shadow: 0 0 0 1px var(--accent), inset 0 1px 3px rgba(0, 0, 0, 0.25);
         }
 
-        .editor-backdrop,
+        .editor-highlights,
         textarea#promptInput {
             position: absolute;
             top: 0;
@@ -301,16 +301,11 @@ class PromptCheckerPanel {
             tab-size: 4;
         }
 
-        .editor-backdrop {
-            pointer-events: none;
-            overflow: hidden;
-            z-index: 1;
-            color: transparent;
-        }
-
         .editor-highlights {
-            width: 100%;
-            box-sizing: border-box;
+            pointer-events: none;
+            overflow-y: hidden;
+            overflow-x: hidden;
+            z-index: 1;
             color: transparent;
             user-select: none;
             -webkit-user-select: none;
@@ -322,9 +317,8 @@ class PromptCheckerPanel {
             background-color: var(--typo-bg);
             text-decoration: underline wavy var(--typo-red) 2px;
             -webkit-text-decoration: underline wavy var(--typo-red) 2px;
-            border-bottom: 2px wavy var(--typo-red);
-            border-radius: 3px;
-            padding: 1px 0;
+            text-decoration-color: var(--typo-red);
+            border-radius: 2px;
             cursor: pointer;
             transition: background-color 0.15s ease;
         }
@@ -701,9 +695,7 @@ class PromptCheckerPanel {
 
     <!-- 🎯 Interactive Google Speller Editor -->
     <div class="editor-container" id="editorContainer">
-        <div class="editor-backdrop" id="editorBackdrop">
-            <div class="editor-highlights" id="editorHighlights"></div>
-        </div>
+        <div class="editor-highlights" id="editorHighlights"></div>
         <textarea
             id="promptInput"
             placeholder="Type or paste your AI prompt here... (e.g. I dont knw what hapened here)"
@@ -821,11 +813,10 @@ class PromptCheckerPanel {
                 .replace(/'/g, '&#039;');
         }
 
-        // ── Synchronize Backdrop Dimensions & Scroll ─────────────
+        // ── Synchronize Highlights Scroll ───────────────────────
         function syncSizeAndScroll() {
-            editorHighlights.style.width = textarea.clientWidth + 'px';
-            editorBackdrop.scrollTop = textarea.scrollTop;
-            editorBackdrop.scrollLeft = textarea.scrollLeft;
+            editorHighlights.scrollTop = textarea.scrollTop;
+            editorHighlights.scrollLeft = textarea.scrollLeft;
         }
 
         textarea.addEventListener('scroll', syncSizeAndScroll);
