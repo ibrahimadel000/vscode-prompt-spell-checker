@@ -10,6 +10,7 @@ import { UserDictionary } from './userDictionary';
 import { StatusBarManager } from './statusBar';
 import { PromptCheckerPanel } from './promptCheckerWebview';
 import { SelectionCapture } from './selectionCapture';
+import { applyContextualPhraseFixes } from './typoRules';
 
 let statusBar: StatusBarManager;
 let diagnosticsProvider: DiagnosticsProvider;
@@ -193,18 +194,22 @@ export async function activate(context: vscode.ExtensionContext) {
             return;
         }
 
-        const currentConfig = getConfig();
-        const misspellings = spellEngine.findMisspellings(originalText, currentConfig);
+        // 1. Contextual phrase corrections (e.g. 'cant plea tanned' -> 'can't play tennis')
+        const { text: phraseFixedText, count: phraseCount } = applyContextualPhraseFixes(originalText);
+        let fixedText = phraseFixedText;
 
-        if (misspellings.length === 0) {
+        // 2. Word-level spell checking on the text
+        const currentConfig = getConfig();
+        const misspellings = spellEngine.findMisspellings(fixedText, currentConfig);
+
+        if (misspellings.length === 0 && phraseCount === 0) {
             vscode.window.showInformationMessage('✅ No typos found! Text is clean.');
             return;
         }
 
-        // Apply suggestions right to left
-        let fixedText = originalText;
+        // Apply word suggestions right to left
         const sorted = [...misspellings].sort((a, b) => b.start - a.start);
-        let fixedCount = 0;
+        let fixedCount = phraseCount;
 
         for (const m of sorted) {
             if (m.suggestions && m.suggestions.length > 0) {

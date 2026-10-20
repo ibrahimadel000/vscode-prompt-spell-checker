@@ -1,7 +1,9 @@
 "use strict";
 // 🧩 Core spell-checking engine 🧩
 // Ported from spell_assistant/engine.py
-// Uses `nspell` with local dictionary-en aff/dic files and code-aware filters.
+// Uses `nspell` with local dictionary-en aff/dic files, code-aware filters,
+// and Google-grade Bayesian frequency re-ranking with Peter Norvig's typo model,
+// phonetic Metaphone matching, compound word splitting, and bigram collocation context.
 var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
     if (k2 === undefined) k2 = k;
     var desc = Object.getOwnPropertyDescriptor(m, k);
@@ -40,30 +42,16 @@ exports.SpellEngine = void 0;
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
 const codeFilters_1 = require("./codeFilters");
+const frequencyData_1 = require("./frequencyData");
+const typoRules_1 = require("./typoRules");
 const nspell = require('nspell');
-// Common informal words typed without apostrophes or common contraction typos
-const FORCE_CONTRACTION_CHECK = new Set([
-    'cant', 'wont', 'dont', 'isnt', 'arent', 'wasnt', 'werent',
-    'havent', 'hasnt', 'hadnt', 'wouldnt', 'couldnt', 'shouldnt',
-    'doesnt', 'didnt', 'theyre', 'youre', 'weve', 'thats', 'whats',
-    'heres', 'theres', 'wheres', 'lets', 'dosnt', 'didint', 'shoudnt', 'coudnt'
-]);
-const CONTRACTION_MAP = {
-    cant: "can't", wont: "won't", dont: "don't", isnt: "isn't",
-    arent: "aren't", wasnt: "wasn't", werent: "weren't",
-    havent: "haven't", hasnt: "hasn't", hadnt: "hadn't",
-    wouldnt: "wouldn't", couldnt: "couldn't", shouldnt: "shouldn't",
-    doesnt: "doesn't", didnt: "didn't", theyre: "they're",
-    youre: "you're", weve: "we've", thats: "that's", whats: "what's",
-    heres: "here's", theres: "there's", wheres: "where's", lets: "let's",
-    dosnt: "doesn't", didint: "didn't", shoudnt: "shouldn't", coudnt: "couldn't",
-};
 class SpellEngine {
     checker = null;
     ready;
     userDictionary;
     extensionPath;
     extraWords = new Set();
+    metaphoneIndex = new Map();
     constructor(userDictionary, extensionPath, extraKnownWords = []) {
         this.userDictionary = userDictionary;
         this.extensionPath = extensionPath;
@@ -92,6 +80,10 @@ class SpellEngine {
             const aff = await fs.promises.readFile(path.join(dictDir, 'index.aff'), 'utf-8');
             const dic = await fs.promises.readFile(path.join(dictDir, 'index.dic'), 'utf-8');
             this.checker = nspell(aff, dic);
+            // Register informal contractions into checker so nspell generates them as suggestion targets
+            for (const word of typoRules_1.FORCE_CONTRACTION_CHECK) {
+                this.checker.add(word);
+            }
             // Add extra default dev words
             for (const word of this.extraWords) {
                 this.checker.add(word);
@@ -100,7 +92,36 @@ class SpellEngine {
             for (const word of this.userDictionary.getAllWords()) {
                 this.checker.add(word);
             }
-            console.log('[Spell Assistant] Dictionary loaded successfully from: ' + dictDir);
+            // Build Metaphone reverse index from frequent words & dictionary words (length 3-16)
+            this.metaphoneIndex.clear();
+            const cleanDicWords = dic.split('\n')
+                .map(l => l.split('/')[0].trim().toLowerCase())
+                .filter(w => /^[a-z]{3,16}$/.test(w));
+            // First index frequent words
+            for (const word of frequencyData_1.FREQUENT_WORDS) {
+                const meta = (0, typoRules_1.metaphone)(word);
+                if (meta) {
+                    if (!this.metaphoneIndex.has(meta)) {
+                        this.metaphoneIndex.set(meta, []);
+                    }
+                    if (!this.metaphoneIndex.get(meta).includes(word)) {
+                        this.metaphoneIndex.get(meta).push(word);
+                    }
+                }
+            }
+            // Then index full dictionary words (gives instant phonetic lookup for tennis, etc.)
+            for (const word of cleanDicWords) {
+                const meta = (0, typoRules_1.metaphone)(word);
+                if (meta) {
+                    if (!this.metaphoneIndex.has(meta)) {
+                        this.metaphoneIndex.set(meta, []);
+                    }
+                    if (!this.metaphoneIndex.get(meta).includes(word)) {
+                        this.metaphoneIndex.get(meta).push(word);
+                    }
+                }
+            }
+            console.log('[Spell Assistant] Dictionary loaded and indexed successfully from: ' + dictDir);
         }
         catch (error) {
             console.error('[Spell Assistant] Failed to load dictionary:', error);
@@ -148,11 +169,14 @@ class SpellEngine {
                 continue;
             }
             // A missing apostrophe contraction is when word has no apostrophe but is in FORCE_CONTRACTION_CHECK
-            const isMissingApostrophe = !word.includes("'") && FORCE_CONTRACTION_CHECK.has(normalized);
+            const isMissingApostrophe = !word.includes("'") && typoRules_1.FORCE_CONTRACTION_CHECK.has(normalized);
+            const isKnownTypo = !this.userDictionary.hasWord(normalized) && typoRules_1.COMMON_TYPOS.hasOwnProperty(normalized);
             const isCorrect = this.checker.correct(word);
-            if (!isCorrect || isMissingApostrophe) {
-                const suggestions = this.getSuggestions(word, normalized, isMissingApostrophe, config.maxSuggestions);
+            if (!isCorrect || isMissingApostrophe || isKnownTypo) {
                 const [contextBefore, contextAfter] = this.getContext(text, start, end);
+                const prevWord = contextBefore.split(/\s+/).pop()?.replace(/[^a-zA-Z']/g, '').toLowerCase() || '';
+                const nextWord = contextAfter.split(/\s+/).shift()?.replace(/[^a-zA-Z']/g, '').toLowerCase() || '';
+                const suggestions = this.getSuggestions(word, normalized, isMissingApostrophe, config.maxSuggestions, prevWord, nextWord);
                 misspellings.push({
                     word,
                     start,
@@ -165,22 +189,185 @@ class SpellEngine {
         }
         return misspellings;
     }
-    getSuggestions(word, normalized, isMissingApostrophe, maxSuggestions) {
+    /**
+     * Google-grade suggestion generation and frequency re-ranking:
+     * 1. Exact typo mapping (dant -> don't, pley -> play, tannes -> tennis).
+     * 2. Compound word splitting (infront -> in front, alot -> a lot).
+     * 3. Phonetic Metaphone retrieval from full English dictionary.
+     * 4. Vowel mutations & letter transpositions.
+     * 5. Hunspell engine suggestions.
+     * 6. Bigram collocation context scoring (play tennis, don't play, i don't).
+     * 7. Strict quality: strips unpunctuated contraction duplicates.
+     */
+    getSuggestions(word, normalized, isMissingApostrophe, maxSuggestions, prevWord = '', nextWord = '') {
         if (!this.checker) {
             return [];
         }
-        const suggestions = [];
-        // Prioritize contraction if missing apostrophe
-        if (isMissingApostrophe && CONTRACTION_MAP[normalized]) {
-            suggestions.push(CONTRACTION_MAP[normalized]);
-        }
-        const hunspellSuggestions = this.checker.suggest(word);
-        for (const s of hunspellSuggestions) {
-            if (!suggestions.includes(s)) {
-                suggestions.push(s);
+        const rawCandidates = new Set();
+        const vowelCandidateSet = new Set();
+        const transpositionCandidateSet = new Set();
+        const phoneticCandidateSet = new Set();
+        // 1. Exact typo dictionary match
+        if (typoRules_1.COMMON_TYPOS[normalized]) {
+            for (const c of typoRules_1.COMMON_TYPOS[normalized]) {
+                rawCandidates.add(c);
             }
         }
-        return suggestions.slice(0, maxSuggestions);
+        // 2. Contraction match
+        if (typoRules_1.CONTRACTION_MAP[normalized]) {
+            rawCandidates.add(typoRules_1.CONTRACTION_MAP[normalized]);
+        }
+        // 3. Glued compound words (e.g. infront -> in front, alot -> a lot)
+        const compoundSplit = (0, typoRules_1.splitCompoundWord)(normalized, (w) => this.checker.correct(w));
+        if (compoundSplit) {
+            rawCandidates.add(compoundSplit);
+        }
+        // 4. Phonetic Metaphone matching from dictionary (e.g. tannes -> tennis, spller -> speller)
+        const wordMeta = (0, typoRules_1.metaphone)(normalized);
+        if (wordMeta && this.metaphoneIndex.has(wordMeta)) {
+            for (const match of this.metaphoneIndex.get(wordMeta)) {
+                if (Math.abs(match.length - normalized.length) <= 2) {
+                    rawCandidates.add(match);
+                    phoneticCandidateSet.add(match.toLowerCase());
+                }
+            }
+        }
+        // 5. Vowel mutations (e.g. 'dant' -> 'dont' -> "don't", 'pley' -> 'play')
+        const vowelMutations = (0, typoRules_1.getVowelMutations)(normalized);
+        for (const vm of vowelMutations) {
+            if (this.checker.correct(vm) || typoRules_1.CONTRACTION_MAP[vm]) {
+                rawCandidates.add(vm);
+                vowelCandidateSet.add(vm.toLowerCase());
+                if (typoRules_1.CONTRACTION_MAP[vm]) {
+                    rawCandidates.add(typoRules_1.CONTRACTION_MAP[vm]);
+                    vowelCandidateSet.add(typoRules_1.CONTRACTION_MAP[vm].toLowerCase());
+                }
+            }
+        }
+        // 6. Letter transpositions (e.g. 'teh' -> 'the')
+        const transpositions = (0, typoRules_1.getTranspositions)(normalized);
+        for (const tr of transpositions) {
+            if (this.checker.correct(tr) || typoRules_1.CONTRACTION_MAP[tr]) {
+                rawCandidates.add(tr);
+                transpositionCandidateSet.add(tr.toLowerCase());
+                if (typoRules_1.CONTRACTION_MAP[tr]) {
+                    rawCandidates.add(typoRules_1.CONTRACTION_MAP[tr]);
+                    transpositionCandidateSet.add(typoRules_1.CONTRACTION_MAP[tr].toLowerCase());
+                }
+            }
+        }
+        // 7. Hunspell engine suggestions
+        const hunspellSuggestions = this.checker.suggest(word);
+        for (const hs of hunspellSuggestions) {
+            rawCandidates.add(hs);
+            const lowerHs = hs.toLowerCase();
+            if (typoRules_1.CONTRACTION_MAP[lowerHs]) {
+                rawCandidates.add(typoRules_1.CONTRACTION_MAP[lowerHs]);
+            }
+        }
+        // 8. Quality normalization: Convert any unpunctuated contraction (e.g. 'dont' -> "don't")
+        // and eliminate unpunctuated informal forms from final suggestions
+        const candidates = new Set();
+        for (const c of rawCandidates) {
+            const lowerC = c.toLowerCase();
+            if (typoRules_1.CONTRACTION_MAP[lowerC] && !lowerC.includes("'")) {
+                candidates.add(typoRules_1.CONTRACTION_MAP[lowerC]);
+            }
+            else {
+                candidates.add(c);
+            }
+        }
+        // 9. Google Bayesian Frequency & Context Scoring
+        const scoredCandidates = [];
+        const cleanNormalized = normalized.replace(/'/g, '');
+        for (const candidate of candidates) {
+            const normCand = candidate.toLowerCase();
+            if (typoRules_1.BLOCKED_SUGGESTIONS.has(normCand)) {
+                continue;
+            }
+            let score = (0, frequencyData_1.getWordFrequency)(normCand);
+            // Exact typo map bonus
+            if (typoRules_1.COMMON_TYPOS[normalized]?.map(w => w.toLowerCase()).includes(normCand)) {
+                score += 500000;
+            }
+            // Contraction map bonus
+            if (typoRules_1.CONTRACTION_MAP[normalized]?.toLowerCase() === normCand) {
+                score += 600000;
+            }
+            // Compound word split bonus
+            if (compoundSplit && compoundSplit.toLowerCase() === normCand) {
+                score += 450000;
+            }
+            // Phonetic match bonus
+            if (phoneticCandidateSet.has(normCand)) {
+                score += 250000;
+            }
+            // Vowel mutation bonus
+            if (vowelCandidateSet.has(normCand)) {
+                score += 80000;
+            }
+            // Transposition bonus
+            if (transpositionCandidateSet.has(normCand)) {
+                score += 100000;
+            }
+            // Missing apostrophe priority
+            if (isMissingApostrophe && candidate.includes("'")) {
+                score += 150000;
+            }
+            // Bigram collocation context bonus
+            if (prevWord) {
+                const b1 = `${prevWord} ${normCand}`;
+                if (typoRules_1.COMMON_BIGRAMS.has(b1)) {
+                    score += 350000;
+                }
+                if (typoRules_1.COMMON_TYPOS[prevWord]) {
+                    for (const pt of typoRules_1.COMMON_TYPOS[prevWord]) {
+                        const b2 = `${pt.toLowerCase()} ${normCand}`;
+                        if (typoRules_1.COMMON_BIGRAMS.has(b2)) {
+                            score += 350000;
+                        }
+                    }
+                }
+                if (typoRules_1.CONTRACTION_MAP[prevWord]) {
+                    const b3 = `${typoRules_1.CONTRACTION_MAP[prevWord].toLowerCase()} ${normCand}`;
+                    if (typoRules_1.COMMON_BIGRAMS.has(b3)) {
+                        score += 350000;
+                    }
+                }
+            }
+            if (nextWord) {
+                const bNext = `${normCand} ${nextWord}`;
+                if (typoRules_1.COMMON_BIGRAMS.has(bNext)) {
+                    score += 350000;
+                }
+            }
+            // Distance penalty (ignoring apostrophes)
+            const cleanCand = normCand.replace(/['\s]/g, '');
+            const dist = (0, typoRules_1.levenshteinDistance)(cleanNormalized, cleanCand);
+            if (dist > 1) {
+                score -= (dist - 1) * 20000;
+            }
+            scoredCandidates.push({
+                candidate: (0, typoRules_1.matchCase)(word, candidate),
+                score
+            });
+        }
+        // Sort descending by score
+        scoredCandidates.sort((a, b) => b.score - a.score);
+        // Deduplicate while preserving order
+        const finalSuggestions = [];
+        const seen = new Set();
+        for (const item of scoredCandidates) {
+            const lower = item.candidate.toLowerCase();
+            if (!seen.has(lower)) {
+                seen.add(lower);
+                finalSuggestions.push(item.candidate);
+                if (finalSuggestions.length >= maxSuggestions) {
+                    break;
+                }
+            }
+        }
+        return finalSuggestions;
     }
     getContext(text, start, end, radius = 70) {
         const before = text.slice(Math.max(0, start - radius), start).replace(/\s+/g, ' ').trim();
