@@ -110,8 +110,18 @@ export async function activate(context: vscode.ExtensionContext) {
             };
         }
 
-        // 3️⃣ Word under cursor in the active editor
+        // 3️⃣ Current line or word under cursor in the active editor
         if (activeEd) {
+            const currentLine = activeEd.document.lineAt(activeEd.selection.active.line);
+            if (currentLine && currentLine.text.trim().length > 0) {
+                return {
+                    text: currentLine.text,
+                    targetEditor: activeEd,
+                    targetRange: currentLine.range,
+                    isOsCaptured: false
+                };
+            }
+
             const wordRange = activeEd.document.getWordRangeAtPosition(activeEd.selection.active);
             if (wordRange) {
                 return {

@@ -479,6 +479,8 @@ export interface PhraseFix {
 }
 
 export const COMMON_PHRASE_FIXES: PhraseFix[] = [
+    { pattern: /\b(cant|can't)\s+plea\s+tanned\b/gi, replacement: "can't play tennis" },
+    { pattern: /\b(dont|don't|dant)\s+plea\s+tanned\b/gi, replacement: "don't play tennis" },
     { pattern: /\b(cant|can't)\s+plea\b/gi, replacement: "can't play" },
     { pattern: /\b(dont|don't)\s+plea\b/gi, replacement: "don't play" },
     { pattern: /\bplea\s+tanned\b/gi, replacement: "play tennis" },
@@ -492,7 +494,13 @@ export const COMMON_PHRASE_FIXES: PhraseFix[] = [
     { pattern: /\bi\s+wont\b/gi, replacement: "I won't" },
     { pattern: /\bi\s+didnt\b/gi, replacement: "I didn't" },
     { pattern: /\bi\s+(?:don't|dont|dant)\s+no\b/gi, replacement: "I don't know" },
-    { pattern: /\bwhat\s+your\s+(saying|doing|talking|thinking|asking|referring)\b/gi, replacement: (_m, p1) => `what you're ${p1}` }
+    { pattern: /\bwhat\s+your\s+(saying|doing|talking|thinking|asking|referring)\b/gi, replacement: (_m, p1) => `what you're ${p1}` },
+    { pattern: /\bpiece\s+of\s+mind\b/gi, replacement: "peace of mind" },
+    { pattern: /\bpeace\s+of\s+cake\b/gi, replacement: "piece of cake" },
+    { pattern: /\bpeace\s+of\s+paper\b/gi, replacement: "piece of paper" },
+    { pattern: /\bweather\s+or\s+not\b/gi, replacement: "whether or not" },
+    { pattern: /\b(better|more|less|faster|slower|bigger|smaller|taller|shorter)\s+then\b/gi, replacement: (_m, p1) => `${p1} than` },
+    { pattern: /\bhave\s+an\s+affect\b/gi, replacement: "have an effect" }
 ];
 
 export function applyContextualPhraseFixes(text: string): { text: string; count: number } {
@@ -506,4 +514,78 @@ export function applyContextualPhraseFixes(text: string): { text: string; count:
     }
     return { text: result, count };
 }
+
+export interface ContextualError {
+    word: string;
+    start: number;
+    end: number;
+    suggestions: string[];
+}
+
+export interface ContextualErrorRule {
+    pattern: RegExp;
+    groupIndex: number;
+    suggestions: string[];
+}
+
+export const CONTEXTUAL_ERROR_RULES: ContextualErrorRule[] = [
+    // plea -> play
+    { pattern: /\b(?:can't|cant|don't|dont|won't|wont|to|will|should|would|could|cannot)\s+(plea)\b/gi, groupIndex: 1, suggestions: ['play'] },
+    { pattern: /\b(plea)\s+(?:tennis|tannes|tanned|games?|sports?|soccer|football|basketball)\b/gi, groupIndex: 1, suggestions: ['play'] },
+    // tanned -> tennis
+    { pattern: /\b(?:play|pley|plea|watching|watch)\s+(tanned)\b/gi, groupIndex: 1, suggestions: ['tennis'] },
+    { pattern: /\b(tanned)\s+(?:match|court|tournament|player|ball|racket)\b/gi, groupIndex: 1, suggestions: ['tennis'] },
+    // your -> you're
+    { pattern: /\bwhat\s+(your)\s+(?:saying|doing|talking|thinking|asking|referring)\b/gi, groupIndex: 1, suggestions: ["you're"] },
+    { pattern: /\b(your)\s+(?:welcome|right|wrong)\b/gi, groupIndex: 1, suggestions: ["you're"] },
+    // no -> know
+    { pattern: /\b(?:don't|dont|dant|do\s+not)\s+(no)\b/gi, groupIndex: 1, suggestions: ['know'] },
+    // there -> their
+    { pattern: /\b(there)\s+(?:car|dog|cat|house|friend|parents|children|family|turn|work|job)\b/gi, groupIndex: 1, suggestions: ['their'] },
+    // their -> there
+    { pattern: /\b(their)\s+(?:is|are|was|were)\b/gi, groupIndex: 1, suggestions: ['there'] },
+    // loose -> lose
+    { pattern: /\b(loose)\s+(?:weight|the\s+game|my\s+mind|your\s+mind|control|focus|money)\b/gi, groupIndex: 1, suggestions: ['lose'] },
+    // piece -> peace
+    { pattern: /\b(piece)\s+of\s+mind\b/gi, groupIndex: 1, suggestions: ['peace'] },
+    // peace -> piece
+    { pattern: /\b(peace)\s+of\s+(?:cake|paper|bread|land|meat)\b/gi, groupIndex: 1, suggestions: ['piece'] },
+    // weather -> whether
+    { pattern: /\b(weather)\s+or\s+not\b/gi, groupIndex: 1, suggestions: ['whether'] },
+    // then -> than
+    { pattern: /\b(?:better|more|less|faster|slower|bigger|smaller|taller|shorter)\s+(then)\b/gi, groupIndex: 1, suggestions: ['than'] }
+];
+
+export function findContextualErrors(text: string): ContextualError[] {
+    const results: ContextualError[] = [];
+    const seenSpans = new Set<string>();
+
+    for (const rule of CONTEXTUAL_ERROR_RULES) {
+        rule.pattern.lastIndex = 0;
+        let match: RegExpExecArray | null;
+        while ((match = rule.pattern.exec(text)) !== null) {
+            const targetWord = match[rule.groupIndex];
+            const fullMatch = match[0];
+            const groupOffset = fullMatch.indexOf(targetWord);
+            if (groupOffset === -1) {
+                continue;
+            }
+            const start = match.index + groupOffset;
+            const end = start + targetWord.length;
+
+            const spanKey = `${start}:${end}`;
+            if (!seenSpans.has(spanKey)) {
+                seenSpans.add(spanKey);
+                results.push({
+                    word: targetWord,
+                    start,
+                    end,
+                    suggestions: rule.suggestions
+                });
+            }
+        }
+    }
+    return results;
+}
+
 

@@ -38,6 +38,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.PromptCheckerPanel = void 0;
 const vscode = __importStar(require("vscode"));
 const selectionCapture_1 = require("./selectionCapture");
+const typoRules_1 = require("./typoRules");
 class PromptCheckerPanel {
     static currentPanel;
     _panel;
@@ -124,6 +125,29 @@ class PromptCheckerPanel {
                     // Focus the AI Chat box and paste the clean prompt
                     await selectionCapture_1.SelectionCapture.pasteToChat(30);
                     vscode.window.showInformationMessage('⚡ Fixed & pasted back into chat!');
+                    break;
+                }
+                case 'autoFixText': {
+                    const { text: phraseFixed, count: pCount } = (0, typoRules_1.applyContextualPhraseFixes)(message.text);
+                    let finalText = phraseFixed;
+                    const config = this._getConfig();
+                    const misspellings = this._spellEngine.findMisspellings(finalText, config);
+                    let totalCount = pCount;
+                    const sorted = [...misspellings].sort((a, b) => b.start - a.start);
+                    for (const m of sorted) {
+                        if (m.suggestions && m.suggestions.length > 0) {
+                            finalText = finalText.slice(0, m.start) + m.suggestions[0] + finalText.slice(m.end);
+                            totalCount++;
+                        }
+                    }
+                    this._currentText = finalText;
+                    this._panel.webview.postMessage({
+                        command: 'loadText',
+                        text: finalText,
+                        hasEditorTarget: !!(this._targetEditor && this._targetRange)
+                    });
+                    this._analyzeAndSend(finalText);
+                    vscode.window.showInformationMessage(`⚡ Auto-fixed ${totalCount} issue(s)!`);
                     break;
                 }
                 case 'addWord': {
@@ -1144,26 +1168,7 @@ class PromptCheckerPanel {
         });
 
         btnAutoFix.addEventListener('click', () => {
-            const activeErrors = currentMisspellings.filter(m => !ignoredWords.has(m.word.toLowerCase()));
-            if (activeErrors.length === 0) {
-                btnCopy.click();
-                return;
-            }
-
-            let text = textarea.value;
-            const sorted = [...activeErrors].sort((a, b) => b.start - a.start);
-            let count = 0;
-            for (const m of sorted) {
-                if (m.suggestions && m.suggestions.length > 0) {
-                    text = text.slice(0, m.start) + m.suggestions[0] + text.slice(m.end);
-                    count++;
-                }
-            }
-            textarea.value = text;
-            updateStats();
-            renderHighlights();
-            vscode.postMessage({ command: 'checkText', text: textarea.value });
-            showToast('Fixed ' + count + (count === 1 ? ' typo' : ' typos'), '✓');
+            vscode.postMessage({ command: 'autoFixText', text: textarea.value });
         });
 
         btnClear.addEventListener('click', () => {

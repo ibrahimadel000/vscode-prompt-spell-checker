@@ -46,6 +46,7 @@ const userDictionary_1 = require("./userDictionary");
 const statusBar_1 = require("./statusBar");
 const promptCheckerWebview_1 = require("./promptCheckerWebview");
 const selectionCapture_1 = require("./selectionCapture");
+const typoRules_1 = require("./typoRules");
 let statusBar;
 let diagnosticsProvider;
 let spellEngine;
@@ -121,8 +122,17 @@ async function activate(context) {
                 isOsCaptured: false
             };
         }
-        // 3️⃣ Word under cursor in the active editor
+        // 3️⃣ Current line or word under cursor in the active editor
         if (activeEd) {
+            const currentLine = activeEd.document.lineAt(activeEd.selection.active.line);
+            if (currentLine && currentLine.text.trim().length > 0) {
+                return {
+                    text: currentLine.text,
+                    targetEditor: activeEd,
+                    targetRange: currentLine.range,
+                    isOsCaptured: false
+                };
+            }
             const wordRange = activeEd.document.getWordRangeAtPosition(activeEd.selection.active);
             if (wordRange) {
                 return {
@@ -176,16 +186,19 @@ async function activate(context) {
             vscode.window.showWarningMessage('No text selected or in clipboard to check.');
             return;
         }
+        // 1. Contextual phrase corrections (e.g. 'cant plea tanned' -> 'can't play tennis')
+        const { text: phraseFixedText, count: phraseCount } = (0, typoRules_1.applyContextualPhraseFixes)(originalText);
+        let fixedText = phraseFixedText;
+        // 2. Word-level spell checking on the text
         const currentConfig = getConfig();
-        const misspellings = spellEngine.findMisspellings(originalText, currentConfig);
-        if (misspellings.length === 0) {
+        const misspellings = spellEngine.findMisspellings(fixedText, currentConfig);
+        if (misspellings.length === 0 && phraseCount === 0) {
             vscode.window.showInformationMessage('✅ No typos found! Text is clean.');
             return;
         }
-        // Apply suggestions right to left
-        let fixedText = originalText;
+        // Apply word suggestions right to left
         const sorted = [...misspellings].sort((a, b) => b.start - a.start);
-        let fixedCount = 0;
+        let fixedCount = phraseCount;
         for (const m of sorted) {
             if (m.suggestions && m.suggestions.length > 0) {
                 fixedText = fixedText.slice(0, m.start) + m.suggestions[0] + fixedText.slice(m.end);

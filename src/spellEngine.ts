@@ -21,7 +21,8 @@ import {
     splitCompoundWord,
     matchCase,
     levenshteinDistance,
-    BLOCKED_SUGGESTIONS
+    BLOCKED_SUGGESTIONS,
+    findContextualErrors
 } from './typoRules';
 
 const nspell = require('nspell');
@@ -155,9 +156,28 @@ export class SpellEngine {
         };
 
         const skipSpans = getSkipSpans(text, filterOptions);
-        WORD_RE.lastIndex = 0;
-
         const misspellings: Misspelling[] = [];
+        const contextualSpans = new Set<string>();
+
+        // 1. Google-grade contextual collocation & malapropism detection (e.g. "plea tanned" -> "play tennis")
+        const contextualErrors = findContextualErrors(text);
+        for (const ce of contextualErrors) {
+            if (shouldSkipWord(text, ce.word, ce.start, ce.end, skipSpans, filterOptions)) {
+                continue;
+            }
+            contextualSpans.add(`${ce.start}:${ce.end}`);
+            const [contextBefore, contextAfter] = this.getContext(text, ce.start, ce.end);
+            misspellings.push({
+                word: ce.word,
+                start: ce.start,
+                end: ce.end,
+                suggestions: ce.suggestions,
+                contextBefore,
+                contextAfter,
+            });
+        }
+
+        WORD_RE.lastIndex = 0;
         let match: RegExpExecArray | null;
 
         while ((match = WORD_RE.exec(text)) !== null) {
@@ -166,6 +186,10 @@ export class SpellEngine {
             const end = start + word.length;
             const normalized = word.replace(/'/g, '').toLowerCase();
 
+            // Skip if this span was already identified and flagged by contextual check
+            if (contextualSpans.has(`${start}:${end}`)) {
+                continue;
+            }
             if (shouldSkipWord(text, word, start, end, skipSpans, filterOptions)) {
                 continue;
             }
@@ -176,9 +200,15 @@ export class SpellEngine {
                 continue;
             }
 
+            // Valid English words with apostrophes (e.g. "can't", "don't", "won't", "isn't", "they're")
+            // must NEVER be falsely flagged as typos.
+            if (word.includes("'") && this.checker.correct(word)) {
+                continue;
+            }
+
             // A missing apostrophe contraction is when word has no apostrophe but is in FORCE_CONTRACTION_CHECK
             const isMissingApostrophe = !word.includes("'") && FORCE_CONTRACTION_CHECK.has(normalized);
-            const isKnownTypo = !this.userDictionary.hasWord(normalized) && COMMON_TYPOS.hasOwnProperty(normalized);
+            const isKnownTypo = !word.includes("'") && !this.userDictionary.hasWord(normalized) && COMMON_TYPOS.hasOwnProperty(normalized);
             const isCorrect = this.checker.correct(word);
 
             if (!isCorrect || isMissingApostrophe || isKnownTypo) {
@@ -206,6 +236,7 @@ export class SpellEngine {
             }
         }
 
+        misspellings.sort((a, b) => a.start - b.start);
         return misspellings;
     }
 
