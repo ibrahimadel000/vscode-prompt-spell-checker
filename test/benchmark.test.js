@@ -219,6 +219,75 @@ async function runTests() {
         assert.strictEqual(matchCase('dant', "don't"), "don't");
     });
 
+    // ─── 7. Human Emphasis Repeated Letters ─────────────────────────
+    console.log('\n📌 Category 7: Human Emphasis Repeated Letters');
+    test('pleeease -> please', () => {
+        assert.strictEqual(autoFix('pleeease help me'), 'please help me');
+    });
+    test('sooooo -> so', () => {
+        assert.strictEqual(autoFix('sooooo slow'), 'so slow');
+    });
+    test('cooool -> cool', () => {
+        assert.strictEqual(autoFix('this is cooool'), 'this is cool');
+    });
+    test('heeeelp -> help', () => {
+        assert.strictEqual(autoFix('heeeelp with this bug'), 'help with this bug');
+    });
+
+    // ─── 8. Common Grammar & Preposition Slips ───────────────────────
+    console.log('\n📌 Category 8: Common Grammar & Preposition Slips');
+    test('could of -> could have', () => {
+        assert.strictEqual(autoFix('we could of avoided this'), 'we could have avoided this');
+    });
+    test('should of -> should have', () => {
+        assert.strictEqual(autoFix('you should of told me'), 'you should have told me');
+    });
+    test('suppose to -> supposed to', () => {
+        assert.strictEqual(autoFix('this is suppose to work'), 'this is supposed to work');
+    });
+    test('use to -> used to', () => {
+        assert.strictEqual(autoFix('i use to do that'), 'i used to do that');
+    });
+    test('a apple -> an apple', () => {
+        assert.strictEqual(autoFix('eating a apple'), 'eating an apple');
+    });
+    test('a error -> an error', () => {
+        assert.strictEqual(autoFix('there is a error in console'), 'there is an error in console');
+    });
+    test('their is -> there is', () => {
+        assert.strictEqual(autoFix('their is a solution'), 'there is a solution');
+    });
+    test('to much -> too much', () => {
+        assert.strictEqual(autoFix('this is to much memory'), 'this is too much memory');
+    });
+    test('me to -> me too', () => {
+        assert.strictEqual(autoFix('send it to me to'), 'send it to me too');
+    });
+
+    // ─── 9. Smart Quotes & Curly Apostrophes ────────────────────────
+    console.log('\n📌 Category 9: Smart Quotes & Curly Apostrophes');
+    test('curly apostrophe in malapropism (can’t plea tanned -> can\'t play tennis)', () => {
+        assert.strictEqual(autoFix("i can’t plea tanned today"), "i can't play tennis today");
+    });
+
+    // ─── 10. AI Prompt Chat Slang ────────────────────────────────────
+    console.log('\n📌 Category 10: AI Prompt Chat Slang');
+    test('can u help -> can you help', () => {
+        assert.strictEqual(autoFix('can u help me refactor this'), 'can you help me refactor this');
+    });
+    test('in ur code -> in your code', () => {
+        assert.strictEqual(autoFix('fix the bug in ur code'), 'fix the bug in your code');
+    });
+    test('idk -> I don\'t know', () => {
+        assert.strictEqual(autoFix('idk how to solve this'), "I don't know how to solve this");
+    });
+    test('pls fix -> please fix', () => {
+        assert.strictEqual(autoFix('pls fix this issue'), 'please fix this issue');
+    });
+    test('bcoz -> because', () => {
+        assert.strictEqual(autoFix('it failed bcoz of timeout'), 'it failed because of timeout');
+    });
+
     console.log(`\n==================================================`);
     console.log(`📊 Benchmark Summary: ${passed} Passed, ${failed} Failed`);
     console.log(`==================================================\n`);

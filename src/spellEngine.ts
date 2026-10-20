@@ -7,7 +7,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { Misspelling, ExtensionConfig } from './types';
-import { WORD_RE, getSkipSpans, shouldSkipWord, FilterOptions } from './codeFilters';
+import { WORD_RE, getSkipSpans, shouldSkipWord, FilterOptions, normalizeApostrophes } from './codeFilters';
 import { UserDictionary } from './userDictionary';
 import { FREQUENT_WORDS, getWordFrequency } from './frequencyData';
 import {
@@ -17,6 +17,7 @@ import {
     COMMON_BIGRAMS,
     getVowelMutations,
     getTranspositions,
+    getRepeatedLetterCompressions,
     metaphone,
     splitCompoundWord,
     matchCase,
@@ -181,9 +182,10 @@ export class SpellEngine {
         let match: RegExpExecArray | null;
 
         while ((match = WORD_RE.exec(text)) !== null) {
-            const word = match[0];
+            const rawWord = match[0];
+            const word = normalizeApostrophes(rawWord);
             const start = match.index;
-            const end = start + word.length;
+            const end = start + rawWord.length;
             const normalized = word.replace(/'/g, '').toLowerCase();
 
             // Skip if this span was already identified and flagged by contextual check
@@ -261,9 +263,20 @@ export class SpellEngine {
         if (!this.checker) { return []; }
 
         const rawCandidates = new Set<string>();
+        const repeatedCandidateSet = new Set<string>();
         const vowelCandidateSet = new Set<string>();
         const transpositionCandidateSet = new Set<string>();
         const phoneticCandidateSet = new Set<string>();
+
+        // 0. Repeated letter squashing (e.g. 'sooooo' -> 'so', 'pleeease' -> 'please', 'cooool' -> 'cool')
+        const squashedList = getRepeatedLetterCompressions(normalized);
+        for (const sq of squashedList) {
+            if (this.checker.correct(sq) || CONTRACTION_MAP[sq] || COMMON_TYPOS[sq]) {
+                const target = CONTRACTION_MAP[sq] || sq;
+                rawCandidates.add(target);
+                repeatedCandidateSet.add(target.toLowerCase());
+            }
+        }
 
         // 1. Exact typo dictionary match
         if (COMMON_TYPOS[normalized]) {
@@ -367,6 +380,11 @@ export class SpellEngine {
             // Compound word split bonus
             if (compoundSplit && compoundSplit.toLowerCase() === normCand) {
                 score += 450000;
+            }
+
+            // Repeated letter squashing bonus
+            if (repeatedCandidateSet.has(normCand)) {
+                score += 550000;
             }
 
             // Phonetic match bonus

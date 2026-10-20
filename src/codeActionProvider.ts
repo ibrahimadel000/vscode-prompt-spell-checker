@@ -43,17 +43,15 @@ export class SpellCodeActionProvider implements vscode.CodeActionProvider {
             }
 
             // Create a Quick Fix for each suggestion
-            for (const suggestion of suggestions) {
-                const fixAction = new vscode.CodeAction(
-                    `Replace with "${suggestion}"`,
-                    vscode.CodeActionKind.QuickFix
-                );
+            suggestions.forEach((suggestion, idx) => {
+                const label = idx === 0 ? `Replace with "${suggestion}" (Best match)` : `Replace with "${suggestion}"`;
+                const fixAction = new vscode.CodeAction(label, vscode.CodeActionKind.QuickFix);
                 fixAction.edit = new vscode.WorkspaceEdit();
                 fixAction.edit.replace(document.uri, diagnostic.range, suggestion);
                 fixAction.diagnostics = [diagnostic];
-                fixAction.isPreferred = suggestions.indexOf(suggestion) === 0;
+                fixAction.isPreferred = idx === 0;
                 actions.push(fixAction);
-            }
+            });
 
             // "Add to dictionary" action
             const addAction = new vscode.CodeAction(
@@ -67,6 +65,28 @@ export class SpellCodeActionProvider implements vscode.CodeActionProvider {
             };
             addAction.diagnostics = [diagnostic];
             actions.push(addAction);
+
+            // "⚡ Auto-fix all typos in document" action
+            const autoFixAll = new vscode.CodeAction(
+                '⚡ Auto-fix all typos in document',
+                vscode.CodeActionKind.QuickFix
+            );
+            autoFixAll.command = {
+                command: 'spellAssistant.quickFixAll',
+                title: 'Quick Fix All Typos in Editor'
+            };
+            actions.push(autoFixAll);
+
+            // "🔍 Open in AI Prompt Checker" action
+            const openChecker = new vscode.CodeAction(
+                '🔍 Open in AI Prompt Checker...',
+                vscode.CodeActionKind.QuickFix
+            );
+            openChecker.command = {
+                command: 'spellAssistant.openPromptChecker',
+                title: 'Open AI Prompt Checker'
+            };
+            actions.push(openChecker);
         }
 
         return actions;

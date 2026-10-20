@@ -4,11 +4,18 @@
 // URLs, emails, code blocks, file paths, identifiers, etc.
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ALL_CAPS_CONSTANT_RE = exports.HTML_TAG_RE = exports.MARKDOWN_HEADER_RE = exports.FILE_PATH_RE = exports.FENCED_CODE_RE = exports.INLINE_CODE_RE = exports.EMAIL_RE = exports.URL_RE = exports.WORD_RE = void 0;
+exports.normalizeApostrophes = normalizeApostrophes;
 exports.getSkipSpans = getSkipSpans;
 exports.isInSkipSpan = isInSkipSpan;
 exports.looksLikeIdentifier = looksLikeIdentifier;
 exports.shouldSkipWord = shouldSkipWord;
-exports.WORD_RE = /\b[A-Za-z][A-Za-z']*\b/g;
+exports.WORD_RE = /\b[A-Za-z][A-Za-z'’]*\b/g;
+/**
+ * Normalizes curly/smart apostrophes to standard single quote '.
+ */
+function normalizeApostrophes(str) {
+    return str.replace(/[\u2018\u2019\u00B4]/g, "'");
+}
 exports.URL_RE = /https?:\/\/\S+|www\.\S+/gi;
 exports.EMAIL_RE = /\b[\w.+\-]+@[\w.\-]+\.[A-Za-z]{2,}\b/g;
 exports.INLINE_CODE_RE = /`[^`\n]+`/g;

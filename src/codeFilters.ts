@@ -2,7 +2,14 @@
 // These patterns identify regions of text that should NOT be spell-checked:
 // URLs, emails, code blocks, file paths, identifiers, etc.
 
-export const WORD_RE = /\b[A-Za-z][A-Za-z']*\b/g;
+export const WORD_RE = /\b[A-Za-z][A-Za-z'’]*\b/g;
+
+/**
+ * Normalizes curly/smart apostrophes to standard single quote '.
+ */
+export function normalizeApostrophes(str: string): string {
+    return str.replace(/[\u2018\u2019\u00B4]/g, "'");
+}
 export const URL_RE = /https?:\/\/\S+|www\.\S+/gi;
 export const EMAIL_RE = /\b[\w.+\-]+@[\w.\-]+\.[A-Za-z]{2,}\b/g;
 export const INLINE_CODE_RE = /`[^`\n]+`/g;

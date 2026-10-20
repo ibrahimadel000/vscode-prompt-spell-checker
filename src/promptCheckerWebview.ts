@@ -358,6 +358,22 @@ export class PromptCheckerPanel {
             box-shadow: 0 0 6px rgba(248, 113, 113, 0.4);
         }
 
+        @keyframes pulseClean {
+            0% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.5); }
+            70% { box-shadow: 0 0 0 8px rgba(52, 211, 153, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0); }
+        }
+
+        .status-pill.pulse-clean {
+            animation: pulseClean 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
         /* ── Interactive Google Speller Editor Container ─────────── */
         .editor-container {
             position: relative;
@@ -768,7 +784,10 @@ export class PromptCheckerPanel {
             <kbd class="kbd">Ctrl+↵</kbd>
         </button>
         <button id="btnAutoFix" class="btn btn-secondary" title="Fix all typos in editor">
-            <span>Auto-Fix All</span>
+            <span>⚡ Auto-Fix All</span>
+        </button>
+        <button id="btnUndo" class="btn btn-secondary" title="Undo change (Ctrl+Z)" disabled>
+            <span>↺ Undo</span>
         </button>
         <button id="btnReplaceEditor" class="btn btn-secondary" style="display:none;" title="Replace in code editor">
             <span>Replace in Editor</span>
@@ -825,6 +844,7 @@ export class PromptCheckerPanel {
         const btnFixAndPaste = document.getElementById('btnFixAndPaste');
         const btnCopy = document.getElementById('btnCopy');
         const btnAutoFix = document.getElementById('btnAutoFix');
+        const btnUndo = document.getElementById('btnUndo');
         const btnReplaceEditor = document.getElementById('btnReplaceEditor');
         const btnClear = document.getElementById('btnClear');
         const toast = document.getElementById('toast');
@@ -843,6 +863,45 @@ export class PromptCheckerPanel {
         let ignoredWords = new Set();
         let activeMisspelling = null;
         let debounceTimer = null;
+        let historyStack = [];
+        let redoStack = [];
+
+        function pushHistory() {
+            historyStack.push(textarea.value);
+            if (historyStack.length > 50) historyStack.shift();
+            redoStack = [];
+            updateUndoState();
+        }
+
+        function updateUndoState() {
+            if (btnUndo) {
+                btnUndo.disabled = historyStack.length === 0;
+            }
+        }
+
+        function undo() {
+            if (historyStack.length === 0) return;
+            redoStack.push(textarea.value);
+            const prev = historyStack.pop();
+            textarea.value = prev;
+            updateUndoState();
+            updateStats();
+            renderHighlights();
+            vscode.postMessage({ command: 'checkText', text: prev });
+            showToast('Undo', '↺');
+        }
+
+        function redo() {
+            if (redoStack.length === 0) return;
+            historyStack.push(textarea.value);
+            const next = redoStack.pop();
+            textarea.value = next;
+            updateUndoState();
+            updateStats();
+            renderHighlights();
+            vscode.postMessage({ command: 'checkText', text: next });
+            showToast('Redo', '↻');
+        }
 
         function showToast(text, icon = '✓') {
             toastText.textContent = text;
@@ -855,7 +914,8 @@ export class PromptCheckerPanel {
             const val = textarea.value;
             const words = val.trim() ? val.trim().split(/\s+/).length : 0;
             const chars = val.length;
-            statsPill.textContent = words + (words === 1 ? ' word' : ' words') + ' · ' + chars + ' chars';
+            const tokens = Math.ceil(words * 1.33);
+            statsPill.textContent = (words > 0 ? '~' + tokens + ' tokens · ' : '') + words + (words === 1 ? ' word' : ' words') + ' · ' + chars + ' chars';
         }
 
         function escapeHtml(str) {
@@ -1097,6 +1157,7 @@ export class PromptCheckerPanel {
 
         // ── Apply Suggestion / Replace Typo ───────────────────────
         function applySuggestion(misspelling, replacement) {
+            pushHistory();
             const original = textarea.value;
             const before = original.slice(0, misspelling.start);
             const after = original.slice(misspelling.end);
@@ -1141,7 +1202,18 @@ export class PromptCheckerPanel {
 
         // ── Keyboard Shortcuts ────────────────────────────────────
         textarea.addEventListener('keydown', (e) => {
-            if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'Enter') {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+                if (e.shiftKey) {
+                    e.preventDefault();
+                    redo();
+                } else {
+                    e.preventDefault();
+                    undo();
+                }
+            } else if ((e.ctrlKey || e.metaKey) && e.key === 'y') {
+                e.preventDefault();
+                redo();
+            } else if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'Enter') {
                 e.preventDefault();
                 btnFixAndPaste.click();
             } else if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
@@ -1157,6 +1229,7 @@ export class PromptCheckerPanel {
             const activeErrors = currentMisspellings.filter(m => !ignoredWords.has(m.word.toLowerCase()));
 
             if (activeErrors.length > 0) {
+                pushHistory();
                 const sorted = [...activeErrors].sort((a, b) => b.start - a.start);
                 for (const m of sorted) {
                     if (m.suggestions && m.suggestions.length > 0) {
@@ -1186,10 +1259,18 @@ export class PromptCheckerPanel {
         });
 
         btnAutoFix.addEventListener('click', () => {
+            pushHistory();
             vscode.postMessage({ command: 'autoFixText', text: textarea.value });
         });
 
+        if (btnUndo) {
+            btnUndo.addEventListener('click', undo);
+        }
+
         btnClear.addEventListener('click', () => {
+            if (textarea.value.trim()) {
+                pushHistory();
+            }
             textarea.value = '';
             currentMisspellings = [];
             ignoredWords.clear();
@@ -1229,11 +1310,16 @@ export class PromptCheckerPanel {
 
             if (activeErrors.length === 0) {
                 statusBadge.className = 'status-pill status-clean';
-                statusText.textContent = 'Clean';
+                const hasText = textarea.value.trim().length > 0;
+                statusText.textContent = hasText ? '✨ 100% Clean' : 'Clean';
+                if (hasText) {
+                    statusBadge.classList.add('pulse-clean');
+                }
                 return;
             }
 
             statusBadge.className = 'status-pill status-errors';
+            statusBadge.classList.remove('pulse-clean');
             statusText.textContent = activeErrors.length + (activeErrors.length === 1 ? ' typo' : ' typos');
         }
 

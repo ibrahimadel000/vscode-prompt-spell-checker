@@ -173,9 +173,10 @@ class SpellEngine {
         codeFilters_1.WORD_RE.lastIndex = 0;
         let match;
         while ((match = codeFilters_1.WORD_RE.exec(text)) !== null) {
-            const word = match[0];
+            const rawWord = match[0];
+            const word = (0, codeFilters_1.normalizeApostrophes)(rawWord);
             const start = match.index;
-            const end = start + word.length;
+            const end = start + rawWord.length;
             const normalized = word.replace(/'/g, '').toLowerCase();
             // Skip if this span was already identified and flagged by contextual check
             if (contextualSpans.has(`${start}:${end}`)) {
@@ -232,9 +233,19 @@ class SpellEngine {
             return [];
         }
         const rawCandidates = new Set();
+        const repeatedCandidateSet = new Set();
         const vowelCandidateSet = new Set();
         const transpositionCandidateSet = new Set();
         const phoneticCandidateSet = new Set();
+        // 0. Repeated letter squashing (e.g. 'sooooo' -> 'so', 'pleeease' -> 'please', 'cooool' -> 'cool')
+        const squashedList = (0, typoRules_1.getRepeatedLetterCompressions)(normalized);
+        for (const sq of squashedList) {
+            if (this.checker.correct(sq) || typoRules_1.CONTRACTION_MAP[sq] || typoRules_1.COMMON_TYPOS[sq]) {
+                const target = typoRules_1.CONTRACTION_MAP[sq] || sq;
+                rawCandidates.add(target);
+                repeatedCandidateSet.add(target.toLowerCase());
+            }
+        }
         // 1. Exact typo dictionary match
         if (typoRules_1.COMMON_TYPOS[normalized]) {
             for (const c of typoRules_1.COMMON_TYPOS[normalized]) {
@@ -325,6 +336,10 @@ class SpellEngine {
             // Compound word split bonus
             if (compoundSplit && compoundSplit.toLowerCase() === normCand) {
                 score += 450000;
+            }
+            // Repeated letter squashing bonus
+            if (repeatedCandidateSet.has(normCand)) {
+                score += 550000;
             }
             // Phonetic match bonus
             if (phoneticCandidateSet.has(normCand)) {

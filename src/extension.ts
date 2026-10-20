@@ -53,6 +53,26 @@ export async function activate(context: vscode.ExtensionContext) {
 
     diagnosticsProvider.activate(getConfig);
 
+    // 📊 Connect live document diagnostics with status bar typo counter
+    diagnosticsProvider.onDiagnosticsUpdated = (doc, count) => {
+        const activeEd = vscode.window.activeTextEditor;
+        if (activeEd && activeEd.document.uri.toString() === doc.uri.toString()) {
+            statusBar.update(getConfig().enabled, count, true);
+        }
+    };
+
+    context.subscriptions.push(
+        vscode.window.onDidChangeActiveTextEditor(editor => {
+            const currentCfg = getConfig();
+            if (!editor) {
+                statusBar.update(currentCfg.enabled, undefined, false);
+                return;
+            }
+            const count = diagnosticsProvider.getDiagnosticCount(editor.document.uri);
+            statusBar.update(currentCfg.enabled, count, diagnosticsProvider.isTargetDocument(editor.document, currentCfg));
+        })
+    );
+
     // Register Quick Fix actions for target languages and untitled documents
     const selectors: vscode.DocumentSelector = [
         ...config.targetLanguages.map(lang => ({ language: lang })),

@@ -14,9 +14,16 @@ export class DiagnosticsProvider implements vscode.Disposable {
     private debounceTimers: Map<string, NodeJS.Timeout> = new Map();
     private disposables: vscode.Disposable[] = [];
 
+    public onDiagnosticsUpdated?: (doc: vscode.TextDocument, count: number) => void;
+
     constructor(engine: SpellEngine) {
         this.engine = engine;
         this.diagnosticCollection = vscode.languages.createDiagnosticCollection('spellAssistant');
+    }
+
+    public getDiagnosticCount(uri: vscode.Uri): number {
+        const diags = this.diagnosticCollection.get(uri);
+        return diags ? diags.length : 0;
     }
 
     activate(getConfig: () => ExtensionConfig): void {
@@ -108,6 +115,7 @@ export class DiagnosticsProvider implements vscode.Disposable {
         });
 
         this.diagnosticCollection.set(doc.uri, diagnostics);
+        this.onDiagnosticsUpdated?.(doc, diagnostics.length);
     }
 
     clearAll(): void {

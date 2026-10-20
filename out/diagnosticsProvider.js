@@ -44,9 +44,14 @@ class DiagnosticsProvider {
     engine;
     debounceTimers = new Map();
     disposables = [];
+    onDiagnosticsUpdated;
     constructor(engine) {
         this.engine = engine;
         this.diagnosticCollection = vscode.languages.createDiagnosticCollection('spellAssistant');
+    }
+    getDiagnosticCount(uri) {
+        const diags = this.diagnosticCollection.get(uri);
+        return diags ? diags.length : 0;
     }
     activate(getConfig) {
         this.disposables.push(vscode.workspace.onDidOpenTextDocument(doc => {
@@ -117,6 +122,7 @@ class DiagnosticsProvider {
             return diagnostic;
         });
         this.diagnosticCollection.set(doc.uri, diagnostics);
+        this.onDiagnosticsUpdated?.(doc, diagnostics.length);
     }
     clearAll() {
         this.diagnosticCollection.clear();

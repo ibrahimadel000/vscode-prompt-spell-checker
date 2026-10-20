@@ -251,6 +251,34 @@ export function getVowelMutations(word: string): string[] {
 }
 
 /**
+ * Compresses repeated characters (3 or more) to 1 or 2 characters:
+ * E.g., 'sooooo' -> ['so', 'soo'], 'pleeease' -> ['please', 'pleease'], 'heeeelp' -> ['help', 'heelp']
+ */
+export function getRepeatedLetterCompressions(word: string): string[] {
+    const results = new Set<string>();
+    const lower = word.toLowerCase();
+
+    // Check if word has 3 or more repeated letters
+    if (!/(.)\1{2,}/.test(lower)) {
+        return [];
+    }
+
+    // 1. Squash to single letter (e.g. 'pleeease' -> 'please', 'sooooo' -> 'so')
+    const single = lower.replace(/(.)\1{2,}/g, '$1');
+    if (single !== lower) {
+        results.add(single);
+    }
+
+    // 2. Squash to double letter (e.g. 'cooool' -> 'cool', 'reallly' -> 'really')
+    const double = lower.replace(/(.)\1{2,}/g, '$1$1');
+    if (double !== lower && double !== single) {
+        results.add(double);
+    }
+
+    return Array.from(results);
+}
+
+/**
  * Generates adjacent character transpositions.
  * E.g., 'teh' -> ['the'], 'taht' -> ['that']
  */
@@ -504,13 +532,49 @@ export const COMMON_PHRASE_FIXES: PhraseFix[] = [
     { pattern: /\bpeace\s+of\s+cake\b/gi, replacement: "piece of cake" },
     { pattern: /\bpeace\s+of\s+paper\b/gi, replacement: "piece of paper" },
     { pattern: /\bweather\s+or\s+not\b/gi, replacement: "whether or not" },
-    { pattern: /\b(better|more|less|faster|slower|bigger|smaller|taller|shorter)\s+then\b/gi, replacement: (_m, p1) => `${p1} than` },
-    { pattern: /\bhave\s+an\s+affect\b/gi, replacement: "have an effect" }
+    { pattern: /\b(better|more|less|faster|slower|bigger|smaller|taller|shorter|higher|lower|earlier|later|rather|other|different)\s+then\b/gi, replacement: (_m, p1) => `${p1} than` },
+    { pattern: /\bhave\s+an\s+affect\b/gi, replacement: "have an effect" },
+
+    // ── Grammar Slips ──
+    { pattern: /\b(could|should|would|must|might)\s+of\b/gi, replacement: (_m, p1) => `${p1} have` },
+    { pattern: /\b(couldn't|shouldn't|wouldn't)\s+of\b/gi, replacement: (_m, p1) => `${p1} have` },
+    { pattern: /\bsuppose\s+to\b/gi, replacement: "supposed to" },
+    { pattern: /\buse\s+to\b/gi, replacement: "used to" },
+    { pattern: /\ba\s+(apple|error|api|array|object|instance|issue|exception|argument|endpoint|integer|interface|event|operator|expression|icon)\b/gi, replacement: (_m, p1) => `an ${p1}` },
+    { pattern: /\ban\s+(user|url|unique|universal|unit|usecase|useful)\b/gi, replacement: (_m, p1) => `a ${p1}` },
+    { pattern: /\btheir\s+(is|are|was|were|will|has|have|can|could|should|would)\b/gi, replacement: (_m, p1) => `there ${p1}` },
+    { pattern: /\bthere\s+(car|house|code|laptop|computer|server|database|repo|repository|branch|project|file|files)\b/gi, replacement: (_m, p1) => `their ${p1}` },
+    { pattern: /\bto\s+(much|many|slow|fast|late|hard|early|soon|easy|complex|far|close|heavy|light|hot|cold|expensive|cheap|big|small)\b/gi, replacement: (_m, p1) => `too ${p1}` },
+    { pattern: /\bme\s+to\b/gi, replacement: "me too" },
+    { pattern: /\bloose\s+(control|weight|focus|connection|data|money|my\s+mind|your\s+mind|the\s+game|hope)\b/gi, replacement: (_m, p1) => `lose ${p1}` },
+
+    // ── Common Glued Words ──
+    { pattern: /\b(?:infront)\s+of\b/gi, replacement: "in front of" },
+    { pattern: /\b(?:alot)\s+of\b/gi, replacement: "a lot of" },
+    { pattern: /\b(?:alot)\b/gi, replacement: "a lot" },
+    { pattern: /\b(?:aswell)\b/gi, replacement: "as well" },
+    { pattern: /\b(?:atleast)\b/gi, replacement: "at least" },
+    { pattern: /\b(?:eachother)\b/gi, replacement: "each other" },
+    { pattern: /\b(?:everytime)\b/gi, replacement: "every time" },
+    { pattern: /\b(?:thankyou)\b/gi, replacement: "thank you" },
+    { pattern: /\b(?:nevermind)\b/gi, replacement: "never mind" },
+    { pattern: /\b(?:alright)\b/gi, replacement: "all right" },
+
+    // ── Prompt Chat Slang ──
+    { pattern: /\b(?:can|could|will|would)\s+u\b/gi, replacement: (m) => m.replace(/\bu\b/i, 'you') },
+    { pattern: /\b(?:in|on|with|for|at|to)\s+ur\b/gi, replacement: (m) => m.replace(/\bur\b/i, 'your') },
+    { pattern: /\bwhy\s+r\s+you\b/gi, replacement: "why are you" },
+    { pattern: /\bidk\b/gi, replacement: "I don't know" },
+    { pattern: /\btbh\b/gi, replacement: "to be honest" },
+    { pattern: /\b(?:imo|imho)\b/gi, replacement: "in my opinion" },
+    { pattern: /\b(?:pls|plz)\b/gi, replacement: "please" },
+    { pattern: /\b(?:thx|thnx)\b/gi, replacement: "thanks" },
+    { pattern: /\b(?:bcoz|bcuz|cuz|coz|bcz)\b/gi, replacement: "because" }
 ];
 
 export function applyContextualPhraseFixes(text: string): { text: string; count: number } {
-    let result = text;
-    let count = 0;
+    let result = text.replace(/[\u2018\u2019\u00B4]/g, "'");
+    let count = result !== text ? 1 : 0;
     for (const fix of COMMON_PHRASE_FIXES) {
         fix.pattern.lastIndex = 0;
         const replaced = result.replace(fix.pattern, fix.replacement as any);
