@@ -507,8 +507,10 @@ export function applyContextualPhraseFixes(text: string): { text: string; count:
     let result = text;
     let count = 0;
     for (const fix of COMMON_PHRASE_FIXES) {
-        if (fix.pattern.test(result)) {
-            result = result.replace(fix.pattern, fix.replacement as any);
+        fix.pattern.lastIndex = 0;
+        const replaced = result.replace(fix.pattern, fix.replacement as any);
+        if (replaced !== result) {
+            result = replaced;
             count++;
         }
     }

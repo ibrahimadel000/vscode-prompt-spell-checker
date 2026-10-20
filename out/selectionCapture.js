@@ -56,12 +56,39 @@ class SelectionCapture {
     /**
      * Attempts to capture whatever text is currently highlighted in the active OS window / control.
      * Works seamlessly in webview inputs (like AI Chat), terminals, and editors.
+     * If nothing is highlighted, optionally tries selecting the line (Shift+Home) to capture the prompt.
      */
-    static async captureFromOS() {
+    static async captureFromOS(autoSelectLine = true) {
         if (!SelectionCapture._helperPath || process.platform !== 'win32') {
             return '';
         }
-        const marker = `__SPELL_SEL_MARKER_${Date.now()}_${Math.random().toString(36).slice(2)}__`;
+        const runCopyHelper = async (args = []) => {
+            const marker = `__SPELL_SEL_MARKER_${Date.now()}_${Math.random().toString(36).slice(2)}__`;
+            try {
+                await vscode.env.clipboard.writeText(marker);
+                await new Promise((resolve) => {
+                    (0, child_process_1.execFile)(SelectionCapture._helperPath, args, (err) => {
+                        if (err) {
+                            console.warn('[SelectionCapture] Helper error:', err);
+                        }
+                        resolve();
+                    });
+                });
+                const deadline = Date.now() + 250;
+                while (Date.now() < deadline) {
+                    await new Promise((r) => setTimeout(r, 20));
+                    try {
+                        const current = await vscode.env.clipboard.readText();
+                        if (current && current !== marker) {
+                            return current;
+                        }
+                    }
+                    catch { }
+                }
+            }
+            catch { }
+            return '';
+        };
         let prevClipboard = '';
         try {
             prevClipboard = (await vscode.env.clipboard.readText()) || '';
@@ -70,43 +97,23 @@ class SelectionCapture {
             prevClipboard = '';
         }
         try {
-            // Write our sentinel marker to the clipboard
-            await vscode.env.clipboard.writeText(marker);
-            // Run the native helper (which releases Alt/Ctrl/Shift/Q and simulates Ctrl+C)
-            await new Promise((resolve) => {
-                (0, child_process_1.execFile)(SelectionCapture._helperPath, (err) => {
-                    if (err) {
-                        console.warn('[SelectionCapture] Helper error:', err);
-                    }
-                    resolve();
-                });
-            });
-            // Poll the clipboard until it changes from the marker (up to 300ms)
-            const deadline = Date.now() + 300;
-            let copiedText = '';
-            while (Date.now() < deadline) {
-                await new Promise((r) => setTimeout(r, 25));
-                try {
-                    const current = await vscode.env.clipboard.readText();
-                    if (current && current !== marker) {
-                        copiedText = current;
-                        break;
-                    }
-                }
-                catch {
-                    // Ignore transient clipboard read errors
-                }
+            // 1. Try regular Ctrl+C (if user already highlighted text)
+            let text = await runCopyHelper([]);
+            if (text && text.trim()) {
+                return text;
             }
-            if (copiedText && copiedText !== marker) {
-                return copiedText;
+            // 2. If nothing selected and autoSelectLine is true, try selecting the line (Shift+Home then Ctrl+C)
+            if (autoSelectLine) {
+                text = await runCopyHelper(['--copy-line']);
+                if (text && text.trim()) {
+                    return text;
+                }
             }
             // If nothing was copied, restore previous clipboard content
             try {
                 await vscode.env.clipboard.writeText(prevClipboard);
             }
-            catch {
-                // Ignore
-            }
+            catch { }
             return '';
         }
         catch (e) {

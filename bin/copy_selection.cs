@@ -20,15 +20,19 @@ class Program {
     const byte VK_V = 0x56;
     const byte VK_Q = 0x51;
     const byte VK_W = 0x57;
+    const byte VK_HOME = 0x24;
 
     [STAThread]
     static void Main(string[] args) {
         bool isPaste = false;
+        bool isCopyLine = false;
         int delayMs = 30;
 
         for (int i = 0; i < args.Length; i++) {
             if (args[i] == "--paste") {
                 isPaste = true;
+            } else if (args[i] == "--copy-line") {
+                isCopyLine = true;
             } else if (args[i] == "--delay" && i + 1 < args.Length) {
                 int.TryParse(args[i + 1], out delayMs);
             }
@@ -48,13 +52,37 @@ class Program {
         keybd_event(VK_W, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
         Thread.Sleep(Math.Max(10, delayMs));
 
-        byte targetKey = isPaste ? VK_V : VK_C;
+        if (isPaste) {
+            keybd_event(VK_CONTROL, 0, 0, UIntPtr.Zero);
+            Thread.Sleep(15);
+            keybd_event(VK_V, 0, 0, UIntPtr.Zero);
+            Thread.Sleep(25);
+            keybd_event(VK_V, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
+            keybd_event(VK_CONTROL, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
+        } else if (isCopyLine) {
+            // Select line from cursor to beginning of line (Shift+Home)
+            keybd_event(VK_SHIFT, 0, 0, UIntPtr.Zero);
+            Thread.Sleep(15);
+            keybd_event(VK_HOME, 0, 0, UIntPtr.Zero);
+            Thread.Sleep(25);
+            keybd_event(VK_HOME, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
+            keybd_event(VK_SHIFT, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
+            Thread.Sleep(20);
 
-        keybd_event(VK_CONTROL, 0, 0, UIntPtr.Zero);
-        Thread.Sleep(15);
-        keybd_event(targetKey, 0, 0, UIntPtr.Zero);
-        Thread.Sleep(25);
-        keybd_event(targetKey, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
-        keybd_event(VK_CONTROL, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
+            // Copy (Ctrl+C)
+            keybd_event(VK_CONTROL, 0, 0, UIntPtr.Zero);
+            Thread.Sleep(15);
+            keybd_event(VK_C, 0, 0, UIntPtr.Zero);
+            Thread.Sleep(25);
+            keybd_event(VK_C, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
+            keybd_event(VK_CONTROL, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
+        } else {
+            keybd_event(VK_CONTROL, 0, 0, UIntPtr.Zero);
+            Thread.Sleep(15);
+            keybd_event(VK_C, 0, 0, UIntPtr.Zero);
+            Thread.Sleep(25);
+            keybd_event(VK_C, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
+            keybd_event(VK_CONTROL, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
+        }
     }
 }

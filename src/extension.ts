@@ -78,28 +78,7 @@ export async function activate(context: vscode.ExtensionContext) {
         targetRange?: vscode.Range;
         isOsCaptured?: boolean;
     }> {
-        // 1️⃣ Priority: Capture whatever is highlighted in the active OS control (AI chat box, webview, editor, etc.)
-        const osCapturedText = await SelectionCapture.captureFromOS();
-        if (osCapturedText && osCapturedText.trim()) {
-            const activeEd = editor || vscode.window.activeTextEditor;
-            let targetEditor: vscode.TextEditor | undefined;
-            let targetRange: vscode.Range | undefined;
-
-            // If the captured text matches the current Monaco editor selection, link it
-            if (activeEd && !activeEd.selection.isEmpty && activeEd.document.getText(activeEd.selection) === osCapturedText) {
-                targetEditor = activeEd;
-                targetRange = activeEd.selection;
-            }
-
-            return {
-                text: osCapturedText,
-                targetEditor,
-                targetRange,
-                isOsCaptured: true
-            };
-        }
-
-        // 2️⃣ If user is in an active text editor and has text selected
+        // 1️⃣ Priority: If user has an active Monaco editor with text selected, use it directly (0ms)
         const activeEd = editor || vscode.window.activeTextEditor;
         if (activeEd && !activeEd.selection.isEmpty) {
             return {
@@ -110,46 +89,53 @@ export async function activate(context: vscode.ExtensionContext) {
             };
         }
 
-        // 3️⃣ Current line or word under cursor in the active editor
+        // 2️⃣ Priority: OS Global Selection Capture (AI Chat box, webviews, external controls)
+        // With autoSelectLine=true, if cursor is at the end of the prompt in the chat box,
+        // it selects the line (Shift+Home) and copies it automatically.
+        const osCapturedText = await SelectionCapture.captureFromOS(true);
+        if (osCapturedText && osCapturedText.trim()) {
+            let targetEditor: vscode.TextEditor | undefined;
+            let targetRange: vscode.Range | undefined;
+            let isOsCaptured = true;
+
+            // If the captured text matches Monaco editor's current line, link to Monaco
+            if (activeEd) {
+                const currentLine = activeEd.document.lineAt(activeEd.selection.active.line);
+                if (currentLine && (currentLine.text.trim() === osCapturedText.trim() || currentLine.text === osCapturedText)) {
+                    targetEditor = activeEd;
+                    targetRange = currentLine.range;
+                    isOsCaptured = false;
+                }
+            }
+
+            return {
+                text: osCapturedText.trim(),
+                targetEditor,
+                targetRange,
+                isOsCaptured
+            };
+        }
+
+        // 3️⃣ If user is in an active Monaco editor with no selection, use the current line
         if (activeEd) {
             const currentLine = activeEd.document.lineAt(activeEd.selection.active.line);
             if (currentLine && currentLine.text.trim().length > 0) {
                 return {
-                    text: currentLine.text,
+                    text: currentLine.text.trim(),
                     targetEditor: activeEd,
                     targetRange: currentLine.range,
                     isOsCaptured: false
                 };
             }
-
-            const wordRange = activeEd.document.getWordRangeAtPosition(activeEd.selection.active);
-            if (wordRange) {
-                return {
-                    text: activeEd.document.getText(wordRange),
-                    targetEditor: activeEd,
-                    targetRange: wordRange,
-                    isOsCaptured: false
-                };
-            }
         }
 
-        // 4️⃣ Clipboard fallback (if user copied text previously)
-        try {
-            const text = (await vscode.env.clipboard.readText()) || '';
-            return {
-                text: text.trim(),
-                targetEditor: undefined,
-                targetRange: undefined,
-                isOsCaptured: false
-            };
-        } catch {
-            return {
-                text: '',
-                targetEditor: undefined,
-                targetRange: undefined,
-                isOsCaptured: false
-            };
-        }
+        // 4️⃣ Return empty (do not check stale old clipboard!)
+        return {
+            text: '',
+            targetEditor: undefined,
+            targetRange: undefined,
+            isOsCaptured: false
+        };
     }
 
     // 💡 Alt+Q: Select text → open Prompt Checker panel with it directly
@@ -200,7 +186,7 @@ export async function activate(context: vscode.ExtensionContext) {
         const originalText = target.text;
 
         if (!originalText || !originalText.trim()) {
-            vscode.window.showWarningMessage('No text selected or in clipboard to check.');
+            vscode.window.showWarningMessage('No text selected or active prompt to check.');
             return;
         }
 
@@ -213,7 +199,8 @@ export async function activate(context: vscode.ExtensionContext) {
         const misspellings = spellEngine.findMisspellings(fixedText, currentConfig);
 
         if (misspellings.length === 0 && phraseCount === 0) {
-            vscode.window.showInformationMessage('✅ No typos found! Text is clean.');
+            const preview = originalText.length > 35 ? originalText.slice(0, 35) + '...' : originalText;
+            vscode.window.showInformationMessage(`✅ No typos found in: "${preview}"`);
             return;
         }
 
@@ -222,7 +209,7 @@ export async function activate(context: vscode.ExtensionContext) {
         let fixedCount = phraseCount;
 
         for (const m of sorted) {
-            if (m.suggestions && m.suggestions.length > 0) {
+            if (m.suggestions && m.suggestions.length > 0 && m.suggestions[0] !== m.word) {
                 fixedText = fixedText.slice(0, m.start) + m.suggestions[0] + fixedText.slice(m.end);
                 fixedCount++;
             }
@@ -230,17 +217,16 @@ export async function activate(context: vscode.ExtensionContext) {
 
         await vscode.env.clipboard.writeText(fixedText);
 
+        const previewBefore = originalText.trim().length > 30 ? originalText.trim().slice(0, 30) + '...' : originalText.trim();
+        const previewAfter = fixedText.trim().length > 30 ? fixedText.trim().slice(0, 30) + '...' : fixedText.trim();
+
         if (target.targetEditor && target.targetRange) {
             await target.targetEditor.edit(builder => builder.replace(target.targetRange!, fixedText));
-            vscode.window.showInformationMessage(`⚡ Fixed ${fixedCount} typo(s)! Replaced in editor & copied to clipboard.`);
-        } else if (target.isOsCaptured) {
+            vscode.window.showInformationMessage(`⚡ Fixed: "${previewBefore}" → "${previewAfter}"`);
+        } else {
             // Auto-paste directly over highlighted selection in AI Chat box (Ctrl+V)
             await SelectionCapture.pasteToOS(40);
-            vscode.window.showInformationMessage(`⚡ Fixed ${fixedCount} typo(s) & pasted directly into chat!`);
-        } else {
-            // Auto-paste clean text directly
-            await SelectionCapture.pasteToOS(40);
-            vscode.window.showInformationMessage(`⚡ Fixed ${fixedCount} typo(s)! Copied & pasted clean text.`);
+            vscode.window.showInformationMessage(`⚡ Fixed & pasted into chat: "${previewAfter}"`);
         }
     };
 
