@@ -170,6 +170,47 @@ export class PromptCheckerPanel {
                         }
                         break;
                     }
+                    case 'pasteFromClipboard': {
+                        const clipText = await vscode.env.clipboard.readText();
+                        if (clipText && clipText.trim()) {
+                            this._currentText = clipText;
+                            this._panel.webview.postMessage({
+                                command: 'loadText',
+                                text: clipText,
+                                hasEditorTarget: !!(this._targetEditor && this._targetRange)
+                            });
+                            this._analyzeAndSend(clipText);
+                            vscode.window.showInformationMessage('📋 Pasted prompt from clipboard!');
+                        } else {
+                            vscode.window.showWarningMessage('Clipboard contains no text.');
+                        }
+                        break;
+                    }
+                    case 'requestDiff': {
+                        const originalText = message.text || '';
+                        const { text: phraseFixed, count: pCount } = applyContextualPhraseFixes(originalText);
+                        let finalText = phraseFixed;
+                        const config = this._getConfig();
+                        const misspellings = this._spellEngine.findMisspellings(finalText, config);
+                        let totalCount = pCount;
+                        const sorted = [...misspellings].sort((a, b) => b.start - a.start);
+                        const wordChanges: Array<{ original: string; fixed: string }> = [];
+                        for (const m of sorted) {
+                            if (m.suggestions && m.suggestions.length > 0 && m.suggestions[0] !== m.word) {
+                                wordChanges.unshift({ original: m.word, fixed: m.suggestions[0] });
+                                finalText = finalText.slice(0, m.start) + m.suggestions[0] + finalText.slice(m.end);
+                                totalCount++;
+                            }
+                        }
+                        this._panel.webview.postMessage({
+                            command: 'diffResult',
+                            originalText: originalText,
+                            fixedText: finalText,
+                            fixesCount: totalCount,
+                            wordChanges: wordChanges
+                        });
+                        break;
+                    }
                 }
             },
             null,
@@ -311,11 +352,47 @@ export class PromptCheckerPanel {
             gap: 8px;
         }
 
+        .view-switch {
+            display: inline-flex;
+            background: var(--secondary-bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 2px;
+            gap: 2px;
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: none;
+            color: var(--muted);
+            font-family: inherit;
+            font-size: 11px;
+            font-weight: 500;
+            padding: 3px 9px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.12s ease;
+        }
+
+        .tab-btn:hover {
+            color: var(--fg);
+        }
+
+        .tab-btn.active {
+            background: var(--card-bg);
+            color: var(--fg);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+            font-weight: 600;
+        }
+
         .stats-pill {
             font-size: 11px;
             color: var(--muted);
             font-variant-numeric: tabular-nums;
-            padding: 2px 6px;
+            padding: 3px 8px;
+            background: var(--secondary-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
         }
 
         .status-pill {
@@ -372,6 +449,170 @@ export class PromptCheckerPanel {
             opacity: 0.4;
             cursor: not-allowed;
             pointer-events: none;
+        }
+
+        /* ── Diff Comparison View ─────────────────────────────────── */
+        .diff-container {
+            position: relative;
+            flex: 1;
+            min-height: 180px;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.16);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .diff-header-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 14px;
+            border-bottom: 1px solid var(--border);
+            background: rgba(255, 255, 255, 0.02);
+            flex-shrink: 0;
+        }
+
+        .diff-summary-badge {
+            font-size: 11.5px;
+            font-weight: 600;
+            color: var(--clean-green);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .diff-actions {
+            display: inline-flex;
+            gap: 8px;
+        }
+
+        .btn-sm {
+            padding: 4px 10px !important;
+            font-size: 11px !important;
+        }
+
+        .diff-content {
+            flex: 1;
+            padding: 16px 18px;
+            font-family: var(--vscode-editor-font-family, Menlo, Monaco, Consolas, monospace);
+            font-size: 13.5px;
+            line-height: 1.7;
+            white-space: pre-wrap;
+            word-break: break-word;
+            overflow-y: auto;
+        }
+
+        .diff-del {
+            background: rgba(234, 67, 53, 0.15);
+            color: #ff6b6b;
+            text-decoration: line-through;
+            padding: 1px 4px;
+            border-radius: 3px;
+            margin-right: 2px;
+        }
+
+        .diff-add {
+            background: rgba(52, 211, 153, 0.18);
+            color: #34d399;
+            font-weight: 600;
+            padding: 1px 4px;
+            border-radius: 3px;
+            margin-right: 4px;
+        }
+
+        .diff-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: var(--secondary-bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 4px 8px;
+            font-size: 11px;
+            margin: 3px;
+        }
+
+        .diff-chips-panel {
+            margin-bottom: 14px;
+            padding-bottom: 12px;
+            border-bottom: 1px dashed var(--border);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            align-items: center;
+        }
+
+        .diff-clean-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: var(--clean-green);
+            gap: 8px;
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        /* ── Empty State Overlay ─────────────────────────────────── */
+        .empty-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            z-index: 5;
+            pointer-events: none;
+            opacity: 0.9;
+            transition: opacity 0.15s ease;
+        }
+
+        .empty-overlay.hidden {
+            display: none !important;
+        }
+
+        .empty-sparkle {
+            font-size: 26px;
+        }
+
+        .empty-text {
+            font-size: 13.5px;
+            font-weight: 600;
+            color: var(--fg);
+        }
+
+        .empty-hint {
+            font-size: 11.5px;
+            color: var(--muted);
+            margin-bottom: 4px;
+        }
+
+        .empty-paste-btn {
+            pointer-events: auto;
+            background: var(--secondary-bg);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--vscode-scrollbarSlider-background, rgba(255, 255, 255, 0.15));
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--vscode-scrollbarSlider-hoverBackground, rgba(255, 255, 255, 0.25));
         }
 
         /* ── Interactive Google Speller Editor Container ─────────── */
@@ -751,6 +992,10 @@ export class PromptCheckerPanel {
             </svg>
             <span>Prompt Spell Checker</span>
         </div>
+        <div class="view-switch">
+            <button id="tabEditor" class="tab-btn active" type="button" title="Interactive Editor View">Editor</button>
+            <button id="tabDiff" class="tab-btn" type="button" title="Visual Diff & Change Comparison">Diff Preview</button>
+        </div>
         <div class="header-right">
             <span id="statsPill" class="stats-pill">0 words · 0 chars</span>
             <div id="statusBadge" class="status-pill status-clean">
@@ -771,6 +1016,30 @@ export class PromptCheckerPanel {
             autocorrect="off"
             autocapitalize="off"
         ></textarea>
+        <div id="emptyOverlay" class="empty-overlay">
+            <div class="empty-sparkle">✨</div>
+            <div class="empty-text">Prompt Spell Checker Ready</div>
+            <div class="empty-hint">Type or paste prompt to detect spelling, grammar, and contractions</div>
+            <button id="btnEmptyPaste" class="btn btn-secondary empty-paste-btn" type="button">
+                <span>📋 Paste from Clipboard</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- 🔍 Diff Comparison View -->
+    <div id="diffContainer" class="diff-container" style="display: none;">
+        <div class="diff-header-bar">
+            <span id="diffSummaryBadge" class="diff-summary-badge">⚡ 0 improvements found</span>
+            <div class="diff-actions">
+                <button id="btnDiffApply" class="btn btn-primary btn-sm" type="button" title="Apply all fixes to editor">
+                    <span>⚡ Apply All Fixes</span>
+                </button>
+                <button id="btnDiffCopy" class="btn btn-secondary btn-sm" type="button" title="Copy fixed text">
+                    <span>📋 Copy Fixed Prompt</span>
+                </button>
+            </div>
+        </div>
+        <div class="diff-content" id="diffContent"></div>
     </div>
 
     <!-- ⚡ Action Buttons -->
@@ -851,6 +1120,18 @@ export class PromptCheckerPanel {
         const toastIcon = document.getElementById('toastIcon');
         const toastText = document.getElementById('toastText');
 
+        // View Tabs and Diff elements
+        const tabEditor = document.getElementById('tabEditor');
+        const tabDiff = document.getElementById('tabDiff');
+        const editorContainer = document.getElementById('editorContainer');
+        const diffContainer = document.getElementById('diffContainer');
+        const diffSummaryBadge = document.getElementById('diffSummaryBadge');
+        const diffContent = document.getElementById('diffContent');
+        const btnDiffApply = document.getElementById('btnDiffApply');
+        const btnDiffCopy = document.getElementById('btnDiffCopy');
+        const emptyOverlay = document.getElementById('emptyOverlay');
+        const btnEmptyPaste = document.getElementById('btnEmptyPaste');
+
         // Context Menu elements
         const spellerContextMenu = document.getElementById('spellerContextMenu');
         const menuTypoWord = document.getElementById('menuTypoWord');
@@ -865,6 +1146,15 @@ export class PromptCheckerPanel {
         let debounceTimer = null;
         let historyStack = [];
         let redoStack = [];
+        let lastDiffResult = null;
+
+        function updateEmptyState() {
+            if (!textarea.value || textarea.value.trim().length === 0) {
+                if (emptyOverlay) emptyOverlay.classList.remove('hidden');
+            } else {
+                if (emptyOverlay) emptyOverlay.classList.add('hidden');
+            }
+        }
 
         function pushHistory() {
             historyStack.push(textarea.value);
@@ -885,6 +1175,7 @@ export class PromptCheckerPanel {
             const prev = historyStack.pop();
             textarea.value = prev;
             updateUndoState();
+            updateEmptyState();
             updateStats();
             renderHighlights();
             vscode.postMessage({ command: 'checkText', text: prev });
@@ -897,6 +1188,7 @@ export class PromptCheckerPanel {
             const next = redoStack.pop();
             textarea.value = next;
             updateUndoState();
+            updateEmptyState();
             updateStats();
             renderHighlights();
             vscode.postMessage({ command: 'checkText', text: next });
@@ -992,6 +1284,7 @@ export class PromptCheckerPanel {
 
         // ── Real-time Input Checking ──────────────────────────────
         textarea.addEventListener('input', () => {
+            updateEmptyState();
             updateStats();
             renderHighlights();
             clearTimeout(debounceTimer);
@@ -1170,6 +1463,7 @@ export class PromptCheckerPanel {
             textarea.focus();
 
             hideContextMenu();
+            updateEmptyState();
             updateStats();
             renderHighlights();
 
@@ -1250,6 +1544,18 @@ export class PromptCheckerPanel {
 
         btnCopy.addEventListener('click', () => {
             vscode.postMessage({ command: 'copyToClipboard', text: textarea.value });
+            const origSpan = btnCopy.querySelector('span');
+            if (origSpan) {
+                const prev = origSpan.textContent;
+                origSpan.textContent = '✓ Copied!';
+                btnCopy.style.borderColor = 'var(--clean-green)';
+                btnCopy.style.color = 'var(--clean-green)';
+                setTimeout(() => {
+                    origSpan.textContent = prev;
+                    btnCopy.style.borderColor = '';
+                    btnCopy.style.color = '';
+                }, 1400);
+            }
             showToast('Copied clean prompt', '✓');
         });
 
@@ -1267,6 +1573,55 @@ export class PromptCheckerPanel {
             btnUndo.addEventListener('click', undo);
         }
 
+        if (btnEmptyPaste) {
+            btnEmptyPaste.addEventListener('click', (e) => {
+                e.stopPropagation();
+                vscode.postMessage({ command: 'pasteFromClipboard' });
+            });
+        }
+
+        if (tabEditor && tabDiff) {
+            tabEditor.addEventListener('click', () => {
+                tabEditor.classList.add('active');
+                tabDiff.classList.remove('active');
+                if (editorContainer) editorContainer.style.display = 'block';
+                if (diffContainer) diffContainer.style.display = 'none';
+                textarea.focus();
+            });
+
+            tabDiff.addEventListener('click', () => {
+                tabDiff.classList.add('active');
+                tabEditor.classList.remove('active');
+                if (editorContainer) editorContainer.style.display = 'none';
+                if (diffContainer) diffContainer.style.display = 'flex';
+                vscode.postMessage({ command: 'requestDiff', text: textarea.value });
+            });
+        }
+
+        if (btnDiffApply) {
+            btnDiffApply.addEventListener('click', () => {
+                if (lastDiffResult && lastDiffResult.fixedText) {
+                    pushHistory();
+                    textarea.value = lastDiffResult.fixedText;
+                    if (tabEditor) tabEditor.click();
+                    updateEmptyState();
+                    updateStats();
+                    renderHighlights();
+                    vscode.postMessage({ command: 'checkText', text: textarea.value });
+                    showToast('Applied all fixes to editor!', '⚡');
+                }
+            });
+        }
+
+        if (btnDiffCopy) {
+            btnDiffCopy.addEventListener('click', () => {
+                if (lastDiffResult && lastDiffResult.fixedText) {
+                    vscode.postMessage({ command: 'copyToClipboard', text: lastDiffResult.fixedText });
+                    showToast('Copied fixed prompt!', '✓');
+                }
+            });
+        }
+
         btnClear.addEventListener('click', () => {
             if (textarea.value.trim()) {
                 pushHistory();
@@ -1274,6 +1629,7 @@ export class PromptCheckerPanel {
             textarea.value = '';
             currentMisspellings = [];
             ignoredWords.clear();
+            updateEmptyState();
             updateStats();
             renderHighlights();
             renderResults([]);
@@ -1292,6 +1648,7 @@ export class PromptCheckerPanel {
                     } else {
                         btnReplaceEditor.style.display = 'none';
                     }
+                    updateEmptyState();
                     updateStats();
                     renderHighlights();
                     textarea.focus();
@@ -1301,8 +1658,64 @@ export class PromptCheckerPanel {
                     renderHighlights();
                     renderResults(currentMisspellings);
                     break;
+                case 'diffResult':
+                    lastDiffResult = msg;
+                    renderDiffView(msg);
+                    break;
             }
         });
+
+        // ── Render Diff Comparison View ───────────────────────────
+        function renderDiffView(msg) {
+            if (!diffContent || !diffSummaryBadge) return;
+            const fixesCount = msg.fixesCount || 0;
+            const orig = msg.originalText || '';
+            const fixed = msg.fixedText || '';
+
+            if (fixesCount === 0 || orig === fixed) {
+                diffSummaryBadge.textContent = '✨ 100% Clean';
+                diffSummaryBadge.style.color = 'var(--clean-green)';
+                if (btnDiffApply) btnDiffApply.disabled = true;
+                diffContent.innerHTML =
+                    '<div class="diff-clean-card">' +
+                        '<div style="font-size:32px;">✨</div>' +
+                        '<div style="font-weight:600;font-size:14px;color:var(--clean-green);">Prompt is 100% Clean!</div>' +
+                        '<div style="font-size:12px;color:var(--muted);max-width:320px;">No typos, phrase errors, contractions, or developer slip-ups found in this prompt.</div>' +
+                    '</div>';
+                return;
+            }
+
+            diffSummaryBadge.textContent = '⚡ ' + fixesCount + (fixesCount === 1 ? ' improvement found' : ' improvements found');
+            diffSummaryBadge.style.color = 'var(--clean-green)';
+            if (btnDiffApply) btnDiffApply.disabled = false;
+
+            let html = '';
+
+            // Render chips of what was corrected
+            if (msg.wordChanges && msg.wordChanges.length > 0) {
+                html += '<div class="diff-chips-panel">';
+                html += '<span style="font-size:11px;color:var(--muted);margin-right:4px;">Corrections:</span>';
+                msg.wordChanges.forEach(c => {
+                    html += '<span class="diff-chip"><span class="diff-del">' + escapeHtml(c.original) + '</span> → <span class="diff-add">' + escapeHtml(c.fixed) + '</span></span>';
+                });
+                html += '</div>';
+            }
+
+            // Render full preview text with changes highlighted
+            let preview = escapeHtml(fixed);
+            if (msg.wordChanges) {
+                msg.wordChanges.forEach(c => {
+                    const escFixed = escapeHtml(c.fixed);
+                    const rep = '<span class="diff-add" title="Was: &quot;' + escapeHtml(c.original) + '&quot;">' + escFixed + '</span>';
+                    preview = preview.split(escFixed).join(rep);
+                });
+            }
+
+            html += '<div style="font-size:11px;font-weight:600;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;">Enhanced Clean Prompt Preview</div>';
+            html += '<div style="background:var(--secondary-bg);padding:14px;border-radius:6px;border:1px solid var(--border);line-height:1.7;">' + preview + '</div>';
+
+            diffContent.innerHTML = html;
+        }
 
         // ── Update Status Badge ───────────────────────────────────
         function renderResults(misspellings) {

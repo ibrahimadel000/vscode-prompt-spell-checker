@@ -91,7 +91,7 @@ async function runTests() {
         assert.strictEqual(autoFix('you shoudnt do that'), "you shouldn't do that");
     });
     test('coudnt -> couldn\'t', () => {
-        assert.strictEqual(autoFix('i coudnt find it'), "i couldn't find it");
+        assert.strictEqual(autoFix('i coudnt find it'), "I couldn't find it");
     });
 
     // ─── 2. Phonetic Sound-Alikes & Metaphone Matching ──────────────
@@ -135,11 +135,11 @@ async function runTests() {
 
     // ─── 3. Contextual Collocations & Malapropisms ──────────────────
     console.log('\n📌 Category 3: Contextual Collocations & Malapropisms');
-    test('i can\'t plea tanned today -> i can\'t play tennis today', () => {
-        assert.strictEqual(autoFix("i can't plea tanned today"), "i can't play tennis today");
+    test('i can\'t plea tanned today -> I can\'t play tennis today', () => {
+        assert.strictEqual(autoFix("i can't plea tanned today"), "I can't play tennis today");
     });
-    test('i dant pley tannes today -> i don\'t play tennis today', () => {
-        assert.strictEqual(autoFix("i dant pley tannes today"), "i don't play tennis today");
+    test('i dant pley tannes today -> I don\'t play tennis today', () => {
+        assert.strictEqual(autoFix("i dant pley tannes today"), "I don't play tennis today");
     });
     test('peace of paper -> piece of paper', () => {
         assert.strictEqual(autoFix('give me a peace of paper'), 'give me a piece of paper');
@@ -246,7 +246,7 @@ async function runTests() {
         assert.strictEqual(autoFix('this is suppose to work'), 'this is supposed to work');
     });
     test('use to -> used to', () => {
-        assert.strictEqual(autoFix('i use to do that'), 'i used to do that');
+        assert.strictEqual(autoFix('i use to do that'), 'I used to do that');
     });
     test('a apple -> an apple', () => {
         assert.strictEqual(autoFix('eating a apple'), 'eating an apple');
@@ -266,8 +266,8 @@ async function runTests() {
 
     // ─── 9. Smart Quotes & Curly Apostrophes ────────────────────────
     console.log('\n📌 Category 9: Smart Quotes & Curly Apostrophes');
-    test('curly apostrophe in malapropism (can’t plea tanned -> can\'t play tennis)', () => {
-        assert.strictEqual(autoFix("i can’t plea tanned today"), "i can't play tennis today");
+    test('curly apostrophe in malapropism (can’t plea tanned -> I can\'t play tennis today)', () => {
+        assert.strictEqual(autoFix("i can’t plea tanned today"), "I can't play tennis today");
     });
 
     // ─── 10. AI Prompt Chat Slang ────────────────────────────────────
@@ -286,6 +286,69 @@ async function runTests() {
     });
     test('bcoz -> because', () => {
         assert.strictEqual(autoFix('it failed bcoz of timeout'), 'it failed because of timeout');
+    });
+
+    // ─── 11. Developer & Coding Slip-ups ─────────────────────────────
+    console.log('\n📌 Category 11: Developer & Coding Slip-ups');
+    test('fucntion / funciton -> function', () => {
+        assert.strictEqual(autoFix('async fucntion getData'), 'async function getData');
+        assert.strictEqual(autoFix('export funciton handleRequest'), 'export function handleRequest');
+    });
+    test('retun -> return', () => {
+        assert.strictEqual(autoFix('retun response'), 'return response');
+    });
+    test('calback -> callback', () => {
+        assert.strictEqual(autoFix('register the calback function'), 'register the callback function');
+    });
+    test('promsie -> promise', () => {
+        assert.strictEqual(autoFix('return a pending promsie'), 'return a pending promise');
+    });
+    test('asnyc / aysnc -> async', () => {
+        assert.strictEqual(autoFix('make this asnyc'), 'make this async');
+        assert.strictEqual(autoFix('aysnc function execute'), 'async function execute');
+    });
+    test('awiat -> await', () => {
+        assert.strictEqual(autoFix('awiat fetchUrl'), 'await fetchUrl');
+    });
+    test('resposne / reqeust -> response / request', () => {
+        assert.strictEqual(autoFix('validate the reqeust and resposne'), 'validate the request and response');
+    });
+    test('paramter / arguement -> parameter / argument', () => {
+        assert.strictEqual(autoFix('invalid paramter in arguement list'), 'invalid parameter in argument list');
+    });
+    test('middelware -> middleware', () => {
+        assert.strictEqual(autoFix('attach the express middelware'), 'attach the express middleware');
+    });
+    test('authenication -> authentication', () => {
+        assert.strictEqual(autoFix('check user authenication'), 'check user authentication');
+    });
+    test('databse / endpiont -> database / endpoint', () => {
+        assert.strictEqual(autoFix('query the databse endpiont'), 'query the database endpoint');
+    });
+    test('componet / defualt -> component / default', () => {
+        assert.strictEqual(autoFix('export defualt componet'), 'export default component');
+    });
+    test('syntx -> syntax', () => {
+        assert.strictEqual(autoFix('fix the syntx error'), 'fix the syntax error');
+    });
+    test('pakcage / interfce -> package / interface', () => {
+        assert.strictEqual(autoFix('import pakcage with interfce definition'), 'import package with interface definition');
+    });
+
+    // ─── 12. Standalone Pronoun Capitalization & Punctuation Cleanups ─
+    console.log('\n📌 Category 12: Standalone Pronoun Capitalization & Punctuation');
+    test('i am / can i / if i -> I am / can I / if I', () => {
+        assert.strictEqual(autoFix('can i ask a question'), 'can I ask a question');
+        assert.strictEqual(autoFix('if i run this command'), 'if I run this command');
+        assert.strictEqual(autoFix('i think this is correct'), 'I think this is correct');
+        assert.strictEqual(autoFix('yes, i want that'), 'yes, I want that');
+    });
+    test('missing space after comma/question/exclamation mark', () => {
+        assert.strictEqual(autoFix('help me,please with this bug'), 'help me, please with this bug');
+        assert.strictEqual(autoFix('why?because it failed'), 'why? because it failed');
+    });
+    test('multiple consecutive spaces collapsed to single space', () => {
+        assert.strictEqual(autoFix('clean   up   spaces'), 'clean up spaces');
     });
 
     console.log(`\n==================================================`);

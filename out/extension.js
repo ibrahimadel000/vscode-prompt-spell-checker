@@ -240,24 +240,29 @@ async function activate(context) {
             await quickFixAndCopy();
             return;
         }
+        const originalDocText = editor.document.getText();
+        const { text: phraseFixed, count: phraseCount } = (0, typoRules_1.applyContextualPhraseFixes)(originalDocText);
+        let currentText = phraseFixed;
         const currentConfig = getConfig();
-        const misspellings = spellEngine.findMisspellings(editor.document.getText(), currentConfig);
-        if (misspellings.length === 0) {
-            vscode.window.showInformationMessage('No typos found!');
+        const misspellings = spellEngine.findMisspellings(currentText, currentConfig);
+        if (misspellings.length === 0 && phraseCount === 0) {
+            vscode.window.showInformationMessage('✅ No typos found! Document is clean.');
             return;
         }
-        const edit = new vscode.WorkspaceEdit();
+        let fixedText = currentText;
         const sortedMisspellings = [...misspellings].sort((a, b) => b.start - a.start);
+        let wordFixCount = 0;
         for (const m of sortedMisspellings) {
-            if (m.suggestions.length > 0) {
-                const range = new vscode.Range(editor.document.positionAt(m.start), editor.document.positionAt(m.end));
-                edit.replace(editor.document.uri, range, m.suggestions[0]);
+            if (m.suggestions.length > 0 && m.suggestions[0] !== m.word) {
+                fixedText = fixedText.slice(0, m.start) + m.suggestions[0] + fixedText.slice(m.end);
+                wordFixCount++;
             }
         }
-        await vscode.workspace.applyEdit(edit);
+        const totalFixed = phraseCount + wordFixCount;
+        const fullRange = new vscode.Range(editor.document.positionAt(0), editor.document.positionAt(originalDocText.length));
+        await editor.edit(builder => builder.replace(fullRange, fixedText));
         diagnosticsProvider.checkDocument(editor.document, currentConfig);
-        const fixCount = sortedMisspellings.filter(m => m.suggestions.length > 0).length;
-        vscode.window.showInformationMessage('Fixed ' + fixCount + ' typo(s).');
+        vscode.window.showInformationMessage(`⚡ Fixed ${totalFixed} typo(s) across document.`);
     }));
     // Toggle spell checking on/off
     context.subscriptions.push(vscode.commands.registerCommand('spellAssistant.toggle', () => {
