@@ -4,9 +4,19 @@
   "description": "Smart spell-checker for AI coding assistant prompts. Select text or copy, review misspellings in an interactive box, and copy clean text directly into chat.",
   "version": "0.3.5",
   "publisher": "ibrahimadel",
+  "icon": "assets/icon.png",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ibrahimadel000/vscode-prompt-spell-checker"
+  },
+  "bugs": {
+    "url": "https://github.com/ibrahimadel000/vscode-prompt-spell-checker/issues"
+  },
+  "homepage": "https://github.com/ibrahimadel000/vscode-prompt-spell-checker#readme",
   "engines": { "vscode": "^1.85.0" },
-  "categories": ["Other", "Linters"],
-  "keywords": ["spell", "spellcheck", "typo", "ai", "chat", "copilot", "codex", "antigravity", "prompt"],
+  "categories": ["Linters", "Other", "Machine Learning"],
+  "keywords": ["spell", "spellcheck", "typo", "ai", "chat", "copilot", "codex", "antigravity", "prompt", "grammar"],
   "activationEvents": ["onStartupFinished"],
   "main": "./out/extension.js",
   "contributes": {
@@ -165,6 +175,7 @@
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
+    "test": "npm run compile && node test/benchmark.test.js",
     "package": "npx @vscode/vsce package"
   },
   "devDependencies": {

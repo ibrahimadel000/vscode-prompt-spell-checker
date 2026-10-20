@@ -434,6 +434,7 @@ function metaphone(word) {
 /**
  * Splits glued compound words (e.g., 'infront' -> 'in front', 'aswell' -> 'as well')
  */
+const BLOCKED_SPLIT_PARTS = new Set(['st', 'nd', 'rd', 'th', 'mr', 'ms', 'dr', 'vs', 'etc']);
 function splitCompoundWord(word, isWordValid) {
     const lower = word.toLowerCase();
     if (lower.length < 4)
@@ -443,6 +444,9 @@ function splitCompoundWord(word, isWordValid) {
     for (let i = 2; i <= lower.length - 2; i++) {
         const left = lower.slice(0, i);
         const right = lower.slice(i);
+        if (BLOCKED_SPLIT_PARTS.has(left) || BLOCKED_SPLIT_PARTS.has(right)) {
+            continue;
+        }
         if ((isWordValid(left) || left === 'a') && isWordValid(right)) {
             return left + ' ' + right;
         }

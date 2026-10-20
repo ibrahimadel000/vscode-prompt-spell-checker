@@ -4,7 +4,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DEFAULT_DEV_WORDS = void 0;
 exports.DEFAULT_DEV_WORDS = [
-    "api", "chatgpt", "codex", "electron", "github",
+    "ai", "api", "chatgpt", "codex", "electron", "github",
     "javascript", "json", "monaco", "npm", "openai",
     "powershell", "python", "typescript", "uiautomation", "vscode",
     "args", "kwargs", "config", "utils", "repo", "init", "dev", "devops",
@@ -23,6 +23,7 @@ exports.DEFAULT_DEV_WORDS = [
     "xz", "7z", "pkg", "deb", "rpm", "apk", "msi", "dmg", "iso", "img",
     "bin", "cue", "raw", "vmdk", "vdi", "vhd", "qcow", "ova", "ovf",
     "boolean", "integer", "string", "character", "char", "float", "double",
+    "const", "let", "var", "null", "undefined", "true", "false", "async", "await", "return", "def", "fn",
     "copilot", "antigravity", "cursor", "claude", "gemini", "llama", "llm", "llms"
 ];
 //# sourceMappingURL=types.js.map
