@@ -30,11 +30,33 @@ Since VS Code extensions cannot directly inject squiggly lines into sidebar chat
 ---
 
 ## 📦 Current Release
-* Current version: **`0.2.7`**
-* Package file: **`ai-chat-spell-assistant-0.2.7.vsix`**
-* Test command: `code --install-extension ai-chat-spell-assistant-0.2.7.vsix --force`
-* **New in v0.2.7 (Google Speller UI & Red Squigglies):**
-  - **Inline Red Wavy Underlines:** Misspelled words inside the Alt+Q Prompt Checker window now render with a signature red wavy squiggly line and soft background tint.
-  - **Google Speller Right-Click Context Menu:** Right-click directly on any red squiggly word to open a context menu showing spelling suggestions, quick replacement, `+ Add to dictionary`, and `Ignore`.
-  - **Click-to-Suggest (Google Docs style):** Left-clicking a typo also triggers the suggestion popup anchored directly at the word.
-  - **Native Editor Red Diagnostics:** Configurable `spellAssistant.diagnosticSeverity` defaults to `error` for classic red squigglies across editor tabs.
+* Current version: **`0.3.8`**
+* Package file: **`ai-chat-spell-assistant-0.3.8.vsix`**
+* Test command: `antigravity-ide --install-extension ai-chat-spell-assistant-0.3.8.vsix --force`
+
+---
+
+## 🏛️ Hybrid Speller & Predictive Architecture (v0.3.8)
+
+### Tier 1: Instant Local 0ms Engine
+- **Hunspell (`nspell`) + Metaphone Phonetic Index:** Sound-alike matching (`pley tannes` → `play tennis`, `spller` → `speller`).
+- **Google Web N-Gram Frequency Table:** Prioritizes real-world high-frequency verbs and nouns over archaic words.
+- **Contextual Collocation & Malapropism Engine:** Fixes homophones and idiom slips (`i can't plea tanned` → `I can't play tennis`, `peace of paper` → `piece of paper`).
+- **Code Immunity Shield:** Automatically ignores `camelCase`, `snake_case`, URLs, endpoints, file paths, Markdown code fences, and developer terms.
+
+### Tier 2: AI Predictive Proofreader & Grammar Service
+- **`vscode.lm` Native Language Model:** Zero API keys needed; taps into VS Code / Antigravity IDE's native AI models.
+- **LanguageTool REST API:** Seamless grammar, subject-verb agreement (`it retun` → `it returns`), and punctuation checking via `https://api.languagetool.org/v2/check` or self-hosted server.
+- **Custom LLM Endpoint:** Optional support for Groq (`llama-3.3-70b-versatile`), OpenAI, or local Ollama (`localhost:11434`).
+- **Guaranteed Offline Fallback:** Gracefully fails over to Tier 1 local engine if offline.
+
+---
+
+## ⌨️ Workflow Shortcuts & Actions
+
+| Shortcut | Action | Description |
+|---|---|---|
+| `Alt+W` | ⚡ **Instant Auto-Fix & Paste** | Fixes current prompt line or selection directly in the AI Chat input with zero UI. |
+| `Alt+E` | ✨ **AI Predict & Proofread** | Predictive AI proofreading for complex grammar and intent directly into AI Chat. |
+| `Alt+Q` | 🔍 **Open Spell Checker Webview** | Opens interactive prompt checker with live squigglies, Diff tab, and token metrics. |
+| `Ctrl+Shift+Enter` | ⚡ **Fix & Paste to Chat** | Replaces misspelled prompt directly back into AI Chat input from the webview. |
