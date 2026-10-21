@@ -47,12 +47,15 @@ const statusBar_1 = require("./statusBar");
 const promptCheckerWebview_1 = require("./promptCheckerWebview");
 const selectionCapture_1 = require("./selectionCapture");
 const typoRules_1 = require("./typoRules");
+const aiProofreader_1 = require("./aiProofreader");
 let statusBar;
 let diagnosticsProvider;
 let spellEngine;
 let userDictionary;
+let aiProofreader;
 function getConfig() {
     const cfg = vscode.workspace.getConfiguration('spellAssistant');
+    const aiCfg = cfg.get('aiProofreader', {});
     return {
         enabled: cfg.get('enabled', true),
         checkOnType: cfg.get('checkOnType', true),
@@ -66,6 +69,14 @@ function getConfig() {
         ignoreAllCaps: cfg.get('ignoreAllCaps', true),
         maxSuggestions: cfg.get('maxSuggestions', 5),
         diagnosticSeverity: cfg.get('diagnosticSeverity', 'error'),
+        aiProofreader: {
+            enabled: aiCfg.enabled ?? true,
+            provider: aiCfg.provider ?? 'auto',
+            customEndpoint: aiCfg.customEndpoint,
+            customApiKey: aiCfg.customApiKey,
+            customModel: aiCfg.customModel,
+            languageToolEndpoint: aiCfg.languageToolEndpoint
+        }
     };
 }
 async function activate(context) {
@@ -76,6 +87,7 @@ async function activate(context) {
     userDictionary = new userDictionary_1.UserDictionary(context);
     const combinedDevWords = [...types_1.DEFAULT_DEV_WORDS, ...config.extraKnownWords];
     spellEngine = new spellEngine_1.SpellEngine(userDictionary, context.extensionPath, combinedDevWords);
+    aiProofreader = new aiProofreader_1.AIProofreader(spellEngine);
     statusBar = new statusBar_1.StatusBarManager();
     diagnosticsProvider = new diagnosticsProvider_1.DiagnosticsProvider(spellEngine);
     await spellEngine.waitReady();
@@ -169,16 +181,45 @@ async function activate(context) {
         const editor = vscode.window.activeTextEditor;
         const target = await getTargetTextAndRange(editor);
         // Open the Prompt Checker panel with the selected text (or empty if nothing selected)
-        promptCheckerWebview_1.PromptCheckerPanel.createOrShow(context.extensionUri, spellEngine, userDictionary, getConfig, target.text || '', target.targetEditor, target.targetRange);
+        promptCheckerWebview_1.PromptCheckerPanel.createOrShow(context.extensionUri, spellEngine, userDictionary, getConfig, aiProofreader, target.text || '', target.targetEditor, target.targetRange);
     };
     context.subscriptions.push(vscode.commands.registerCommand('spellAssistant.quickFixWord', quickFixWord));
     // 🚀 Open AI Prompt Spell Checker (Interactive Text Box with Misspellings & Direct Copy)
     const openPromptChecker = async () => {
         const editor = vscode.window.activeTextEditor;
         const target = await getTargetTextAndRange(editor);
-        promptCheckerWebview_1.PromptCheckerPanel.createOrShow(context.extensionUri, spellEngine, userDictionary, getConfig, target.text, target.targetEditor, target.targetRange);
+        promptCheckerWebview_1.PromptCheckerPanel.createOrShow(context.extensionUri, spellEngine, userDictionary, getConfig, aiProofreader, target.text, target.targetEditor, target.targetRange);
     };
     context.subscriptions.push(vscode.commands.registerCommand('spellAssistant.openPromptChecker', openPromptChecker));
+    // ✨ AI Predict & Proofread: Deep contextual proofread with AI
+    const aiProofread = async () => {
+        const editor = vscode.window.activeTextEditor;
+        const target = await getTargetTextAndRange(editor);
+        const originalText = target.text;
+        if (!originalText || !originalText.trim()) {
+            openPromptChecker();
+            return;
+        }
+        await vscode.window.withProgress({
+            location: vscode.ProgressLocation.Notification,
+            title: '✨ AI is analyzing & predicting prompt corrections...',
+            cancellable: false
+        }, async () => {
+            const result = await aiProofreader.proofread(originalText, getConfig().aiProofreader);
+            await vscode.env.clipboard.writeText(result.fixedText);
+            const previewBefore = originalText.trim().length > 25 ? originalText.trim().slice(0, 25) + '...' : originalText.trim();
+            const previewAfter = result.fixedText.trim().length > 25 ? result.fixedText.trim().slice(0, 25) + '...' : result.fixedText.trim();
+            if (target.targetEditor && target.targetRange) {
+                await target.targetEditor.edit(b => b.replace(target.targetRange, result.fixedText));
+                vscode.window.showInformationMessage(`✨ AI Fixed (${result.providerUsed}): "${previewBefore}" → "${previewAfter}"`);
+            }
+            else {
+                await selectionCapture_1.SelectionCapture.pasteToOS(40);
+                vscode.window.showInformationMessage(`✨ AI Fixed & pasted (${result.providerUsed}): "${previewAfter}"`);
+            }
+        });
+    };
+    context.subscriptions.push(vscode.commands.registerCommand('spellAssistant.aiProofread', aiProofread));
     // ⚡ Quick Fix & Copy Directly (Zero-UI fast auto-fix)
     const quickFixAndCopy = async () => {
         const editor = vscode.window.activeTextEditor;

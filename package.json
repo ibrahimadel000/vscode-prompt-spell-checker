@@ -2,7 +2,7 @@
   "name": "ai-chat-spell-assistant",
   "displayName": "AI Chat Spell Assistant",
   "description": "Smart spell-checker for AI coding assistant prompts. Select text or copy, review misspellings in an interactive box, and copy clean text directly into chat.",
-  "version": "0.3.7",
+  "version": "0.3.8",
   "publisher": "ibrahimadel",
   "icon": "assets/icon.png",
   "license": "MIT",
@@ -58,6 +58,12 @@
         "command": "spellAssistant.addWord",
         "title": "Add Word to Dictionary",
         "category": "Spell Assistant"
+      },
+      {
+        "command": "spellAssistant.aiProofread",
+        "title": "AI Predict & Proofread Prompt",
+        "category": "Spell Assistant",
+        "icon": "$(sparkle)"
       }
     ],
     "menus": {
@@ -74,6 +80,10 @@
           "command": "spellAssistant.quickFixAndCopy",
           "when": "editorHasSelection",
           "group": "1_modification@3"
+        },
+        {
+          "command": "spellAssistant.aiProofread",
+          "group": "1_modification@4"
         }
       ],
       "editor/title": [
@@ -100,6 +110,10 @@
       {
         "command": "spellAssistant.quickFixAndCopy",
         "key": "alt+w"
+      },
+      {
+        "command": "spellAssistant.aiProofread",
+        "key": "alt+e"
       }
     ],
     "configuration": {
@@ -167,6 +181,37 @@
           "enum": ["error", "warning", "information"],
           "default": "error",
           "description": "Visual style for typos in editor tabs: 'error' (red squiggly line), 'warning' (yellow squiggly line), or 'information' (subtle dots)."
+        },
+        "spellAssistant.aiProofreader.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable AI predictive proofreader (Tier 2) to fix complex grammar, slang, and malapropisms."
+        },
+        "spellAssistant.aiProofreader.provider": {
+          "type": "string",
+          "enum": ["auto", "vscode-lm", "languagetool", "custom-llm"],
+          "default": "auto",
+          "description": "AI Proofreader provider: 'auto' (tries vscode.lm then LanguageTool), 'vscode-lm' (uses IDE native AI model), 'languagetool' (uses LanguageTool grammar API), or 'custom-llm' (custom OpenAI/Ollama endpoint)."
+        },
+        "spellAssistant.aiProofreader.customEndpoint": {
+          "type": "string",
+          "default": "",
+          "description": "Optional custom LLM endpoint URL (e.g. 'http://localhost:11434/v1/chat/completions' for Ollama, or 'https://api.groq.com/openai/v1/chat/completions')."
+        },
+        "spellAssistant.aiProofreader.customApiKey": {
+          "type": "string",
+          "default": "",
+          "description": "Optional API key for custom LLM endpoint (Groq / OpenAI)."
+        },
+        "spellAssistant.aiProofreader.customModel": {
+          "type": "string",
+          "default": "llama-3.3-70b-versatile",
+          "description": "Model identifier for custom LLM endpoint."
+        },
+        "spellAssistant.aiProofreader.languageToolEndpoint": {
+          "type": "string",
+          "default": "https://api.languagetool.org/v2/check",
+          "description": "LanguageTool REST API endpoint (defaults to official public API or self-hosted server)."
         }
       }
     }

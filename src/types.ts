@@ -10,6 +10,29 @@ export interface Misspelling {
     contextAfter: string;
 }
 
+export interface ProofreadChange {
+    original: string;
+    fixed: string;
+    reason?: string;
+}
+
+export interface ProofreadResult {
+    originalText: string;
+    fixedText: string;
+    changes: ProofreadChange[];
+    providerUsed: string;
+    durationMs: number;
+}
+
+export interface AIProofreaderConfig {
+    enabled: boolean;
+    provider: 'auto' | 'vscode-lm' | 'languagetool' | 'custom-llm';
+    customEndpoint?: string;
+    customApiKey?: string;
+    customModel?: string;
+    languageToolEndpoint?: string;
+}
+
 export interface ExtensionConfig {
     enabled: boolean;
     checkOnType: boolean;
@@ -23,6 +46,7 @@ export interface ExtensionConfig {
     ignoreAllCaps: boolean;
     maxSuggestions: number;
     diagnosticSeverity?: 'error' | 'warning' | 'information';
+    aiProofreader?: AIProofreaderConfig;
 }
 
 export const DEFAULT_DEV_WORDS: string[] = [

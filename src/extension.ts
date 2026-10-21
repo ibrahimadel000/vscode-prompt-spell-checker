@@ -11,14 +11,17 @@ import { StatusBarManager } from './statusBar';
 import { PromptCheckerPanel } from './promptCheckerWebview';
 import { SelectionCapture } from './selectionCapture';
 import { applyContextualPhraseFixes } from './typoRules';
+import { AIProofreader } from './aiProofreader';
 
 let statusBar: StatusBarManager;
 let diagnosticsProvider: DiagnosticsProvider;
 let spellEngine: SpellEngine;
 let userDictionary: UserDictionary;
+let aiProofreader: AIProofreader;
 
 function getConfig(): ExtensionConfig {
     const cfg = vscode.workspace.getConfiguration('spellAssistant');
+    const aiCfg = cfg.get<any>('aiProofreader', {});
     return {
         enabled: cfg.get<boolean>('enabled', true),
         checkOnType: cfg.get<boolean>('checkOnType', true),
@@ -32,6 +35,14 @@ function getConfig(): ExtensionConfig {
         ignoreAllCaps: cfg.get<boolean>('ignoreAllCaps', true),
         maxSuggestions: cfg.get<number>('maxSuggestions', 5),
         diagnosticSeverity: cfg.get<'error' | 'warning' | 'information'>('diagnosticSeverity', 'error'),
+        aiProofreader: {
+            enabled: aiCfg.enabled ?? true,
+            provider: aiCfg.provider ?? 'auto',
+            customEndpoint: aiCfg.customEndpoint,
+            customApiKey: aiCfg.customApiKey,
+            customModel: aiCfg.customModel,
+            languageToolEndpoint: aiCfg.languageToolEndpoint
+        }
     };
 }
 
@@ -45,6 +56,7 @@ export async function activate(context: vscode.ExtensionContext) {
     userDictionary = new UserDictionary(context);
     const combinedDevWords = [...DEFAULT_DEV_WORDS, ...config.extraKnownWords];
     spellEngine = new SpellEngine(userDictionary, context.extensionPath, combinedDevWords);
+    aiProofreader = new AIProofreader(spellEngine);
     statusBar = new StatusBarManager();
     diagnosticsProvider = new DiagnosticsProvider(spellEngine);
 
@@ -169,6 +181,7 @@ export async function activate(context: vscode.ExtensionContext) {
             spellEngine,
             userDictionary,
             getConfig,
+            aiProofreader,
             target.text || '',
             target.targetEditor,
             target.targetRange
@@ -189,6 +202,7 @@ export async function activate(context: vscode.ExtensionContext) {
             spellEngine,
             userDictionary,
             getConfig,
+            aiProofreader,
             target.text,
             target.targetEditor,
             target.targetRange
@@ -197,6 +211,42 @@ export async function activate(context: vscode.ExtensionContext) {
 
     context.subscriptions.push(
         vscode.commands.registerCommand('spellAssistant.openPromptChecker', openPromptChecker)
+    );
+
+    // ✨ AI Predict & Proofread: Deep contextual proofread with AI
+    const aiProofread = async () => {
+        const editor = vscode.window.activeTextEditor;
+        const target = await getTargetTextAndRange(editor);
+        const originalText = target.text;
+
+        if (!originalText || !originalText.trim()) {
+            openPromptChecker();
+            return;
+        }
+
+        await vscode.window.withProgress({
+            location: vscode.ProgressLocation.Notification,
+            title: '✨ AI is analyzing & predicting prompt corrections...',
+            cancellable: false
+        }, async () => {
+            const result = await aiProofreader.proofread(originalText, getConfig().aiProofreader);
+            await vscode.env.clipboard.writeText(result.fixedText);
+
+            const previewBefore = originalText.trim().length > 25 ? originalText.trim().slice(0, 25) + '...' : originalText.trim();
+            const previewAfter = result.fixedText.trim().length > 25 ? result.fixedText.trim().slice(0, 25) + '...' : result.fixedText.trim();
+
+            if (target.targetEditor && target.targetRange) {
+                await target.targetEditor.edit(b => b.replace(target.targetRange!, result.fixedText));
+                vscode.window.showInformationMessage(`✨ AI Fixed (${result.providerUsed}): "${previewBefore}" → "${previewAfter}"`);
+            } else {
+                await SelectionCapture.pasteToOS(40);
+                vscode.window.showInformationMessage(`✨ AI Fixed & pasted (${result.providerUsed}): "${previewAfter}"`);
+            }
+        });
+    };
+
+    context.subscriptions.push(
+        vscode.commands.registerCommand('spellAssistant.aiProofread', aiProofread)
     );
 
     // ⚡ Quick Fix & Copy Directly (Zero-UI fast auto-fix)

@@ -3,6 +3,25 @@
 
 const assert = require('assert');
 const path = require('path');
+const Module = require('module');
+
+// Lightweight vscode mock for headless unit test runner
+const originalLoad = Module._load;
+Module._load = function (request, parent, isMain) {
+    if (request === 'vscode') {
+        return {
+            CancellationToken: class {},
+            LanguageModelChatMessage: {
+                User: (msg) => ({ role: 'user', content: msg })
+            },
+            lm: {
+                selectChatModels: async () => []
+            }
+        };
+    }
+    return originalLoad.apply(this, arguments);
+};
+
 const { SpellEngine } = require('../out/spellEngine.js');
 const { applyContextualPhraseFixes } = require('../out/typoRules.js');
 const { DEFAULT_DEV_WORDS } = require('../out/types.js');
@@ -52,9 +71,12 @@ async function runTests() {
     let passed = 0;
     let failed = 0;
 
-    function test(name, fn) {
+    async function test(name, fn) {
         try {
-            fn();
+            const res = fn();
+            if (res && typeof res.then === 'function') {
+                await res;
+            }
             passed++;
             console.log(`  ✅ PASS: ${name}`);
         } catch (err) {
@@ -349,6 +371,36 @@ async function runTests() {
     });
     test('multiple consecutive spaces collapsed to single space', () => {
         assert.strictEqual(autoFix('clean   up   spaces'), 'clean up spaces');
+    });
+
+    // ─── 13. AI Predictive Proofreader (Tier 2 Hybrid Engine) ────────
+    console.log('\n📌 Category 13: AI Predictive Proofreader (Tier 2 Hybrid Engine)');
+    const { AIProofreader } = require('../out/aiProofreader.js');
+    const proofreader = new AIProofreader(engine);
+
+    await test('AIProofreader empty text handling', async () => {
+        const res = await proofreader.proofread('');
+        assert.strictEqual(res.fixedText, '');
+        assert.strictEqual(res.changes.length, 0);
+    });
+
+    await test('AIProofreader local-fallback mode corrects malapropism & typos', async () => {
+        const res = await proofreader.proofread("i cant plea tanned today", {
+            enabled: true,
+            provider: 'local-fallback'
+        });
+        assert.strictEqual(res.fixedText, "I can't play tennis today");
+        assert.strictEqual(res.providerUsed, "Local Offline Engine");
+        assert.ok(res.durationMs >= 0);
+    });
+
+    await test('AIProofreader local-fallback preserves code identifiers', async () => {
+        const res = await proofreader.proofread("check getUserById and process_order endpoint", {
+            enabled: true,
+            provider: 'local-fallback'
+        });
+        assert.ok(res.fixedText.includes("getUserById"));
+        assert.ok(res.fixedText.includes("process_order"));
     });
 
     console.log(`\n==================================================`);

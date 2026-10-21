@@ -46,11 +46,12 @@ class PromptCheckerPanel {
     _spellEngine;
     _userDictionary;
     _getConfig;
+    _aiProofreader;
     _disposables = [];
     _currentText = '';
     _targetEditor;
     _targetRange;
-    static createOrShow(extensionUri, spellEngine, userDictionary, getConfig, initialText, targetEditor, targetRange) {
+    static createOrShow(extensionUri, spellEngine, userDictionary, getConfig, aiProofreader, initialText, targetEditor, targetRange) {
         const column = vscode.ViewColumn.Beside;
         if (PromptCheckerPanel.currentPanel) {
             PromptCheckerPanel.currentPanel._panel.reveal(column);
@@ -65,14 +66,15 @@ class PromptCheckerPanel {
             retainContextWhenHidden: true,
             localResourceRoots: [extensionUri]
         });
-        PromptCheckerPanel.currentPanel = new PromptCheckerPanel(panel, extensionUri, spellEngine, userDictionary, getConfig, initialText ?? '', targetEditor, targetRange);
+        PromptCheckerPanel.currentPanel = new PromptCheckerPanel(panel, extensionUri, spellEngine, userDictionary, getConfig, aiProofreader, initialText ?? '', targetEditor, targetRange);
     }
-    constructor(panel, extensionUri, spellEngine, userDictionary, getConfig, initialText, targetEditor, targetRange) {
+    constructor(panel, extensionUri, spellEngine, userDictionary, getConfig, aiProofreader, initialText, targetEditor, targetRange) {
         this._panel = panel;
         this._extensionUri = extensionUri;
         this._spellEngine = spellEngine;
         this._userDictionary = userDictionary;
         this._getConfig = getConfig;
+        this._aiProofreader = aiProofreader;
         this._currentText = initialText;
         this._targetEditor = targetEditor;
         this._targetRange = targetRange;
@@ -198,6 +200,36 @@ class PromptCheckerPanel {
                         fixedText: finalText,
                         fixesCount: totalCount,
                         wordChanges: wordChanges
+                    });
+                    break;
+                }
+                case 'requestAiProofread': {
+                    const originalText = message.text || '';
+                    if (!originalText.trim()) {
+                        vscode.window.showWarningMessage('Please enter text to proofread with AI.');
+                        break;
+                    }
+                    const config = this._getConfig();
+                    let result;
+                    if (this._aiProofreader) {
+                        result = await this._aiProofreader.proofread(originalText, config.aiProofreader);
+                    }
+                    else {
+                        result = {
+                            originalText,
+                            fixedText: originalText,
+                            changes: [],
+                            providerUsed: 'none',
+                            durationMs: 0
+                        };
+                    }
+                    this._panel.webview.postMessage({
+                        command: 'aiProofreadResult',
+                        originalText: result.originalText,
+                        fixedText: result.fixedText,
+                        changes: result.changes,
+                        providerUsed: result.providerUsed,
+                        durationMs: result.durationMs
                     });
                     break;
                 }
@@ -730,6 +762,25 @@ class PromptCheckerPanel {
             border-color: var(--border-hover);
         }
 
+        .btn-ai {
+            background: linear-gradient(135deg, rgba(142, 68, 173, 0.22), rgba(41, 128, 185, 0.22));
+            border: 1px solid rgba(155, 89, 182, 0.45);
+            color: #e0b0ff;
+            font-weight: 600;
+        }
+
+        .btn-ai:hover {
+            background: linear-gradient(135deg, rgba(142, 68, 173, 0.42), rgba(41, 128, 185, 0.42));
+            border-color: rgba(187, 143, 206, 0.7);
+            color: #ffffff;
+            box-shadow: 0 0 10px rgba(155, 89, 182, 0.35);
+        }
+
+        .btn-ai.loading {
+            opacity: 0.65;
+            pointer-events: none;
+        }
+
         .btn-ghost {
             background: transparent;
             color: var(--muted);
@@ -1038,6 +1089,9 @@ class PromptCheckerPanel {
         <button id="btnAutoFix" class="btn btn-secondary" title="Fix all typos in editor">
             <span>⚡ Auto-Fix All</span>
         </button>
+        <button id="btnAiPredict" class="btn btn-ai" title="Predict & fix all typos with AI (vscode.lm / LanguageTool / LLM)">
+            <span>✨ AI Predict</span>
+        </button>
         <button id="btnUndo" class="btn btn-secondary" title="Undo change (Ctrl+Z)" disabled>
             <span>↺ Undo</span>
         </button>
@@ -1096,6 +1150,7 @@ class PromptCheckerPanel {
         const btnFixAndPaste = document.getElementById('btnFixAndPaste');
         const btnCopy = document.getElementById('btnCopy');
         const btnAutoFix = document.getElementById('btnAutoFix');
+        const btnAiPredict = document.getElementById('btnAiPredict');
         const btnUndo = document.getElementById('btnUndo');
         const btnReplaceEditor = document.getElementById('btnReplaceEditor');
         const btnClear = document.getElementById('btnClear');
@@ -1552,6 +1607,21 @@ class PromptCheckerPanel {
             vscode.postMessage({ command: 'autoFixText', text: textarea.value });
         });
 
+        if (btnAiPredict) {
+            btnAiPredict.addEventListener('click', () => {
+                if (!textarea.value || !textarea.value.trim()) {
+                    showToast('Enter text to predict with AI', '⚠️');
+                    return;
+                }
+                btnAiPredict.classList.add('loading');
+                btnAiPredict.innerHTML = '<span>✨ Predicting...</span>';
+                vscode.postMessage({
+                    command: 'requestAiProofread',
+                    text: textarea.value
+                });
+            });
+        }
+
         if (btnUndo) {
             btnUndo.addEventListener('click', undo);
         }
@@ -1645,6 +1715,23 @@ class PromptCheckerPanel {
                     lastDiffResult = msg;
                     renderDiffView(msg);
                     break;
+                case 'aiProofreadResult':
+                    if (btnAiPredict) {
+                        btnAiPredict.classList.remove('loading');
+                        btnAiPredict.innerHTML = '<span>✨ AI Predict</span>';
+                    }
+                    lastDiffResult = {
+                        originalText: msg.originalText,
+                        fixedText: msg.fixedText,
+                        fixesCount: (msg.changes || []).length,
+                        wordChanges: msg.changes,
+                        providerUsed: msg.providerUsed,
+                        durationMs: msg.durationMs
+                    };
+                    if (tabDiff) tabDiff.click();
+                    renderDiffView(lastDiffResult);
+                    showToast('AI Proofread (' + (msg.providerUsed || 'AI') + (msg.durationMs ? ' · ' + msg.durationMs + 'ms' : '') + ')', '✨');
+                    break;
             }
         });
 
@@ -1674,12 +1761,20 @@ class PromptCheckerPanel {
 
             let html = '';
 
+            // Render provider badge if AI proofread
+            if (msg.providerUsed) {
+                html += '<div style="margin-bottom:10px;display:flex;align-items:center;gap:6px;">' +
+                    '<span style="font-size:10.5px;padding:2px 8px;border-radius:10px;background:rgba(155,89,182,0.18);color:#dfb2f4;border:1px solid rgba(155,89,182,0.4);font-weight:600;">✨ ' + escapeHtml(msg.providerUsed) + (msg.durationMs ? ' · ' + msg.durationMs + 'ms' : '') + '</span>' +
+                '</div>';
+            }
+
             // Render chips of what was corrected
             if (msg.wordChanges && msg.wordChanges.length > 0) {
                 html += '<div class="diff-chips-panel">';
                 html += '<span style="font-size:11px;color:var(--muted);margin-right:4px;">Corrections:</span>';
                 msg.wordChanges.forEach(c => {
-                    html += '<span class="diff-chip"><span class="diff-del">' + escapeHtml(c.original) + '</span> → <span class="diff-add">' + escapeHtml(c.fixed) + '</span></span>';
+                    const titleAttr = c.reason ? ' title="' + escapeHtml(c.reason) + '"' : '';
+                    html += '<span class="diff-chip"' + titleAttr + '><span class="diff-del">' + escapeHtml(c.original) + '</span> → <span class="diff-add">' + escapeHtml(c.fixed) + '</span></span>';
                 });
                 html += '</div>';
             }
