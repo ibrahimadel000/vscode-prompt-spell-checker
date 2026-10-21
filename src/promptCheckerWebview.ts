@@ -131,7 +131,19 @@ export class PromptCheckerPanel {
                     }
                     case 'fixAndPasteToChat': {
                         this._currentText = message.text;
-                        await vscode.env.clipboard.writeText(message.text);
+                        let cleanText = message.text || '';
+                        const config = this._getConfig();
+
+                        if (config.defaultFixEngine !== 'local' && this._aiProofreader && cleanText.trim()) {
+                            try {
+                                const aiRes = await this._aiProofreader.proofread(cleanText, config.aiProofreader);
+                                cleanText = aiRes.fixedText;
+                            } catch (e) {
+                                // Handled by proofread fallback
+                            }
+                        }
+
+                        await vscode.env.clipboard.writeText(cleanText);
 
                         // Close webview panel
                         this.dispose();
@@ -141,7 +153,34 @@ export class PromptCheckerPanel {
 
                         // Focus the AI Chat box and paste the clean prompt
                         await SelectionCapture.pasteToChat(30);
-                        vscode.window.showInformationMessage('⚡ Fixed & pasted back into chat!');
+                        vscode.window.showInformationMessage('✨ Fixed & pasted back into chat!');
+                        break;
+                    }
+                    case 'applyAiAutoFix': {
+                        const originalText = message.text || '';
+                        if (!originalText.trim()) break;
+                        const config = this._getConfig();
+                        let result: ProofreadResult;
+                        if (this._aiProofreader) {
+                            result = await this._aiProofreader.proofread(originalText, config.aiProofreader);
+                        } else {
+                            result = {
+                                originalText,
+                                fixedText: originalText,
+                                changes: [],
+                                providerUsed: 'none',
+                                durationMs: 0
+                            };
+                        }
+                        this._currentText = result.fixedText;
+                        this._panel.webview.postMessage({
+                            command: 'loadText',
+                            text: result.fixedText,
+                            hasEditorTarget: !!(this._targetEditor && this._targetRange)
+                        });
+                        this._analyzeAndSend(result.fixedText);
+                        const count = result.changes ? result.changes.length : 0;
+                        vscode.window.showInformationMessage(`✨ AI Auto-fixed ${count} issue(s) (${result.providerUsed})!`);
                         break;
                     }
                     case 'autoFixText': {
@@ -801,6 +840,51 @@ export class PromptCheckerPanel {
             pointer-events: none;
         }
 
+        .btn-ai-hero {
+            background: linear-gradient(135deg, #1b5e9b, #6b21a8);
+            border: 1px solid rgba(168, 85, 247, 0.45);
+            color: #ffffff;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 2px 6px rgba(0, 0, 0, 0.25);
+            font-weight: 600;
+        }
+
+        .btn-ai-hero:hover {
+            background: linear-gradient(135deg, #2563eb, #7c3aed);
+            border-color: rgba(192, 132, 252, 0.65);
+            box-shadow: 0 0 12px rgba(168, 85, 247, 0.45);
+        }
+
+        .diff-engine-selector {
+            display: inline-flex;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 2px;
+            gap: 2px;
+        }
+
+        .diff-toggle-btn {
+            background: transparent;
+            border: none;
+            color: var(--muted);
+            font-size: 11px;
+            font-weight: 500;
+            padding: 2px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .diff-toggle-btn:hover {
+            color: var(--fg);
+        }
+
+        .diff-toggle-btn.active {
+            background: rgba(155, 89, 182, 0.28);
+            color: #e0b0ff;
+            font-weight: 600;
+        }
+
         .btn-ghost {
             background: transparent;
             color: var(--muted);
@@ -1083,7 +1167,13 @@ export class PromptCheckerPanel {
     <!-- 🔍 Diff Comparison View -->
     <div id="diffContainer" class="diff-container" style="display: none;">
         <div class="diff-header-bar">
-            <span id="diffSummaryBadge" class="diff-summary-badge">⚡ 0 improvements found</span>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <span id="diffSummaryBadge" class="diff-summary-badge">⚡ 0 improvements found</span>
+                <div class="diff-engine-selector">
+                    <button id="btnDiffEngineAi" class="diff-toggle-btn active" type="button" title="View AI Predictive Proofread (vscode.lm / LanguageTool)">✨ AI Mode</button>
+                    <button id="btnDiffEngineLocal" class="diff-toggle-btn" type="button" title="View Fast Local 0ms Fix (Hunspell + Soundex)">⚡ Fast Local</button>
+                </div>
+            </div>
             <div class="diff-actions">
                 <button id="btnDiffApply" class="btn btn-primary btn-sm" type="button" title="Apply all fixes to editor">
                     <span>⚡ Apply All Fixes</span>
@@ -1098,19 +1188,19 @@ export class PromptCheckerPanel {
 
     <!-- ⚡ Action Buttons -->
     <div class="actions-bar">
-        <button id="btnFixAndPaste" class="btn btn-primary" title="Fix all typos and paste into chat (Ctrl+Shift+Enter)">
-            <span>Fix & Paste to Chat</span>
+        <button id="btnFixAndPaste" class="btn btn-primary btn-ai-hero" title="AI Fix all typos and paste into chat (Ctrl+Shift+Enter)">
+            <span>✨ AI Fix & Paste to Chat</span>
             <kbd class="kbd">Ctrl+Shift+↵</kbd>
         </button>
         <button id="btnCopy" class="btn btn-secondary" title="Copy clean prompt (Ctrl+Enter)">
-            <span>Copy Prompt</span>
+            <span>📋 Copy Clean</span>
             <kbd class="kbd">Ctrl+↵</kbd>
         </button>
-        <button id="btnAutoFix" class="btn btn-secondary" title="Fix all typos in editor">
-            <span>⚡ Auto-Fix All</span>
+        <button id="btnAiAutoFix" class="btn btn-ai" title="Predict & fix all typos in editor with AI (vscode.lm / LanguageTool / LLM)">
+            <span>✨ AI Auto-Fix</span>
         </button>
-        <button id="btnAiPredict" class="btn btn-ai" title="Predict & fix all typos with AI (vscode.lm / LanguageTool / LLM)">
-            <span>✨ AI Predict</span>
+        <button id="btnLocalFix" class="btn btn-secondary" title="Instant 0ms offline dictionary fix (Hunspell + Soundex)">
+            <span>⚡ Fast Local (0ms)</span>
         </button>
         <button id="btnUndo" class="btn btn-secondary" title="Undo change (Ctrl+Z)" disabled>
             <span>↺ Undo</span>
@@ -1169,8 +1259,8 @@ export class PromptCheckerPanel {
         const statsPill = document.getElementById('statsPill');
         const btnFixAndPaste = document.getElementById('btnFixAndPaste');
         const btnCopy = document.getElementById('btnCopy');
-        const btnAutoFix = document.getElementById('btnAutoFix');
-        const btnAiPredict = document.getElementById('btnAiPredict');
+        const btnAiAutoFix = document.getElementById('btnAiAutoFix');
+        const btnLocalFix = document.getElementById('btnLocalFix');
         const btnUndo = document.getElementById('btnUndo');
         const btnReplaceEditor = document.getElementById('btnReplaceEditor');
         const btnClear = document.getElementById('btnClear');
@@ -1187,6 +1277,8 @@ export class PromptCheckerPanel {
         const diffContent = document.getElementById('diffContent');
         const btnDiffApply = document.getElementById('btnDiffApply');
         const btnDiffCopy = document.getElementById('btnDiffCopy');
+        const btnDiffEngineAi = document.getElementById('btnDiffEngineAi');
+        const btnDiffEngineLocal = document.getElementById('btnDiffEngineLocal');
         const emptyOverlay = document.getElementById('emptyOverlay');
         const btnEmptyPaste = document.getElementById('btnEmptyPaste');
 
@@ -1622,23 +1714,30 @@ export class PromptCheckerPanel {
             showToast('Replaced in editor', '✓');
         });
 
-        btnAutoFix.addEventListener('click', () => {
-            pushHistory();
-            vscode.postMessage({ command: 'autoFixText', text: textarea.value });
-        });
-
-        if (btnAiPredict) {
-            btnAiPredict.addEventListener('click', () => {
+        if (btnAiAutoFix) {
+            btnAiAutoFix.addEventListener('click', () => {
                 if (!textarea.value || !textarea.value.trim()) {
-                    showToast('Enter text to predict with AI', '⚠️');
+                    showToast('Enter prompt to fix with AI', '⚠️');
                     return;
                 }
-                btnAiPredict.classList.add('loading');
-                btnAiPredict.innerHTML = '<span>✨ Predicting...</span>';
+                pushHistory();
+                btnAiAutoFix.classList.add('loading');
+                btnAiAutoFix.innerHTML = '<span>✨ AI Fixing...</span>';
                 vscode.postMessage({
-                    command: 'requestAiProofread',
+                    command: 'applyAiAutoFix',
                     text: textarea.value
                 });
+            });
+        }
+
+        if (btnLocalFix) {
+            btnLocalFix.addEventListener('click', () => {
+                if (!textarea.value || !textarea.value.trim()) {
+                    showToast('Enter prompt to fix', '⚠️');
+                    return;
+                }
+                pushHistory();
+                vscode.postMessage({ command: 'autoFixText', text: textarea.value });
             });
         }
 
@@ -1651,6 +1750,30 @@ export class PromptCheckerPanel {
                 e.stopPropagation();
                 vscode.postMessage({ command: 'pasteFromClipboard' });
             });
+        }
+
+        let activeDiffMode = 'ai';
+
+        function loadDiff(mode) {
+            activeDiffMode = mode;
+            if (btnDiffEngineAi && btnDiffEngineLocal) {
+                if (mode === 'ai') {
+                    btnDiffEngineAi.classList.add('active');
+                    btnDiffEngineLocal.classList.remove('active');
+                    vscode.postMessage({ command: 'requestAiProofread', text: textarea.value });
+                } else {
+                    btnDiffEngineLocal.classList.add('active');
+                    btnDiffEngineAi.classList.remove('active');
+                    vscode.postMessage({ command: 'requestDiff', text: textarea.value });
+                }
+            }
+        }
+
+        if (btnDiffEngineAi) {
+            btnDiffEngineAi.addEventListener('click', () => loadDiff('ai'));
+        }
+        if (btnDiffEngineLocal) {
+            btnDiffEngineLocal.addEventListener('click', () => loadDiff('local'));
         }
 
         if (tabEditor && tabDiff) {
@@ -1667,7 +1790,7 @@ export class PromptCheckerPanel {
                 tabEditor.classList.remove('active');
                 if (editorContainer) editorContainer.style.display = 'none';
                 if (diffContainer) diffContainer.style.display = 'flex';
-                vscode.postMessage({ command: 'requestDiff', text: textarea.value });
+                loadDiff(activeDiffMode);
             });
         }
 
@@ -1716,6 +1839,10 @@ export class PromptCheckerPanel {
             switch (msg.command) {
                 case 'loadText':
                     textarea.value = msg.text || '';
+                    if (btnAiAutoFix) {
+                        btnAiAutoFix.classList.remove('loading');
+                        btnAiAutoFix.innerHTML = '<span>✨ AI Auto-Fix</span>';
+                    }
                     if (msg.hasEditorTarget) {
                         btnReplaceEditor.style.display = 'inline-flex';
                     } else {
@@ -1736,9 +1863,9 @@ export class PromptCheckerPanel {
                     renderDiffView(msg);
                     break;
                 case 'aiProofreadResult':
-                    if (btnAiPredict) {
-                        btnAiPredict.classList.remove('loading');
-                        btnAiPredict.innerHTML = '<span>✨ AI Predict</span>';
+                    if (btnAiAutoFix) {
+                        btnAiAutoFix.classList.remove('loading');
+                        btnAiAutoFix.innerHTML = '<span>✨ AI Auto-Fix</span>';
                     }
                     lastDiffResult = {
                         originalText: msg.originalText,

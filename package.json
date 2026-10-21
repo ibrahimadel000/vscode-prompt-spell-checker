@@ -2,7 +2,7 @@
   "name": "ai-chat-spell-assistant",
   "displayName": "AI Chat Spell Assistant",
   "description": "Smart spell-checker for AI coding assistant prompts. Select text or copy, review misspellings in an interactive box, and copy clean text directly into chat.",
-  "version": "0.3.8",
+  "version": "0.3.9",
   "publisher": "ibrahimadel",
   "icon": "assets/icon.png",
   "license": "MIT",
@@ -35,7 +35,13 @@
       },
       {
         "command": "spellAssistant.quickFixAndCopy",
-        "title": "Quick Fix Typos & Copy Clean Prompt",
+        "title": "AI Smart Fix & Paste (Primary)",
+        "category": "Spell Assistant",
+        "icon": "$(sparkle)"
+      },
+      {
+        "command": "spellAssistant.localQuickFixAndCopy",
+        "title": "Fast Local Fix & Paste (0ms Offline)",
         "category": "Spell Assistant",
         "icon": "$(zap)"
       },
@@ -82,8 +88,13 @@
           "group": "1_modification@3"
         },
         {
-          "command": "spellAssistant.aiProofread",
+          "command": "spellAssistant.localQuickFixAndCopy",
+          "when": "editorHasSelection",
           "group": "1_modification@4"
+        },
+        {
+          "command": "spellAssistant.aiProofread",
+          "group": "1_modification@5"
         }
       ],
       "editor/title": [
@@ -110,6 +121,10 @@
       {
         "command": "spellAssistant.quickFixAndCopy",
         "key": "alt+w"
+      },
+      {
+        "command": "spellAssistant.localQuickFixAndCopy",
+        "key": "alt+shift+w"
       },
       {
         "command": "spellAssistant.aiProofread",
@@ -181,6 +196,12 @@
           "enum": ["error", "warning", "information"],
           "default": "error",
           "description": "Visual style for typos in editor tabs: 'error' (red squiggly line), 'warning' (yellow squiggly line), or 'information' (subtle dots)."
+        },
+        "spellAssistant.defaultFixEngine": {
+          "type": "string",
+          "enum": ["ai", "local"],
+          "default": "ai",
+          "description": "Primary engine used for Alt+W and 'Fix & Paste': 'ai' (AI predictive proofreader with silent offline fallback) or 'local' (0ms instant offline dictionary)."
         },
         "spellAssistant.aiProofreader.enabled": {
           "type": "boolean",

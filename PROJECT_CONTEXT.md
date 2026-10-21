@@ -30,13 +30,13 @@ Since VS Code extensions cannot directly inject squiggly lines into sidebar chat
 ---
 
 ## 📦 Current Release
-* Current version: **`0.3.8`**
-* Package file: **`ai-chat-spell-assistant-0.3.8.vsix`**
-* Test command: `antigravity-ide --install-extension ai-chat-spell-assistant-0.3.8.vsix --force`
+* Current version: **`0.3.9`**
+* Package file: **`ai-chat-spell-assistant-0.3.9.vsix`**
+* Test command: `antigravity-ide --install-extension ai-chat-spell-assistant-0.3.9.vsix --force`
 
 ---
 
-## 🏛️ Hybrid Speller & Predictive Architecture (v0.3.8)
+## 🏛️ Hybrid Speller & Predictive Architecture (v0.3.9)
 
 ### Tier 1: Instant Local 0ms Engine
 - **Hunspell (`nspell`) + Metaphone Phonetic Index:** Sound-alike matching (`pley tannes` → `play tennis`, `spller` → `speller`).
@@ -44,7 +44,7 @@ Since VS Code extensions cannot directly inject squiggly lines into sidebar chat
 - **Contextual Collocation & Malapropism Engine:** Fixes homophones and idiom slips (`i can't plea tanned` → `I can't play tennis`, `peace of paper` → `piece of paper`).
 - **Code Immunity Shield:** Automatically ignores `camelCase`, `snake_case`, URLs, endpoints, file paths, Markdown code fences, and developer terms.
 
-### Tier 2: AI Predictive Proofreader & Grammar Service
+### Tier 2: AI Predictive Proofreader & Grammar Service (PRIMARY)
 - **`vscode.lm` Native Language Model:** Zero API keys needed; taps into VS Code / Antigravity IDE's native AI models.
 - **LanguageTool REST API:** Seamless grammar, subject-verb agreement (`it retun` → `it returns`), and punctuation checking via `https://api.languagetool.org/v2/check` or self-hosted server.
 - **Custom LLM Endpoint:** Optional support for Groq (`llama-3.3-70b-versatile`), OpenAI, or local Ollama (`localhost:11434`).
@@ -54,9 +54,10 @@ Since VS Code extensions cannot directly inject squiggly lines into sidebar chat
 
 ## ⌨️ Workflow Shortcuts & Actions
 
-| Shortcut | Action | Description |
-|---|---|---|
-| `Alt+W` | ⚡ **Instant Auto-Fix & Paste** | Fixes current prompt line or selection directly in the AI Chat input with zero UI. |
-| `Alt+E` | ✨ **AI Predict & Proofread** | Predictive AI proofreading for complex grammar and intent directly into AI Chat. |
-| `Alt+Q` | 🔍 **Open Spell Checker Webview** | Opens interactive prompt checker with live squigglies, Diff tab, and token metrics. |
-| `Ctrl+Shift+Enter` | ⚡ **Fix & Paste to Chat** | Replaces misspelled prompt directly back into AI Chat input from the webview. |
+| Shortcut | Action | Engine | Description |
+|---|---|---|---|
+| `Alt+W` | ✨ **AI Smart Fix & Paste** | **AI (Primary)** | Intelligently fixes grammar, intent, and typos, then pastes in-place with silent offline fallback. |
+| `Alt+Shift+W` | ⚡ **Fast Local Fix & Paste** | **Local (0ms)** | Instantaneous dictionary & phonetic fix without network or AI latency. |
+| `Alt+Q` | 🔍 **Open Spell Checker Window** | **Interactive** | Opens Google Speller text box with live squigglies, Diff tab, and token metrics. |
+| `Ctrl+Shift+Enter` | ✨ **AI Fix & Paste to Chat** | **AI (Primary)** | Proofreads and replaces misspelled prompt directly into AI Chat input from the webview. |
+| `Ctrl+Enter` | 📋 **Copy Clean Prompt** | **Utility** | Copies clean text to clipboard without closing window. |
