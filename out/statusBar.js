@@ -40,6 +40,10 @@ const vscode = __importStar(require("vscode"));
 class StatusBarManager {
     item;
     enabled = true;
+    lastEnabled = true;
+    lastTypoCount;
+    lastHasEditor = false;
+    resetTimer;
     constructor() {
         this.item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
         this.item.command = 'spellAssistant.openPromptChecker';
@@ -48,6 +52,13 @@ class StatusBarManager {
     }
     update(enabled, typoCount, hasEditor = false) {
         this.enabled = enabled;
+        this.lastEnabled = enabled;
+        this.lastTypoCount = typoCount;
+        this.lastHasEditor = hasEditor;
+        if (this.resetTimer) {
+            clearTimeout(this.resetTimer);
+            this.resetTimer = undefined;
+        }
         if (!enabled) {
             this.item.text = '$(circle-slash) Spell Off';
             this.item.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
@@ -80,10 +91,45 @@ class StatusBarManager {
             this.item.tooltip = 'AI Chat Spell Assistant — Click to open Prompt Checker (Shift+Alt+Q / Alt+W)';
         }
     }
+    showLoading(message = 'AI Proofreading...') {
+        if (this.resetTimer) {
+            clearTimeout(this.resetTimer);
+            this.resetTimer = undefined;
+        }
+        this.item.text = `$(loading~spin) ${message}`;
+        this.item.backgroundColor = new vscode.ThemeColor('statusBarItem.prominentBackground');
+        this.item.tooltip = 'AI Chat Spell Assistant is proofreading and fixing prompt...';
+        this.item.show();
+    }
+    showSuccess(message, durationMs = 3500) {
+        if (this.resetTimer) {
+            clearTimeout(this.resetTimer);
+        }
+        this.item.text = `$(check) ${message}`;
+        this.item.backgroundColor = undefined;
+        this.item.tooltip = message;
+        this.resetTimer = setTimeout(() => {
+            this.update(this.lastEnabled, this.lastTypoCount, this.lastHasEditor);
+        }, durationMs);
+    }
+    showWarning(message, durationMs = 3000) {
+        if (this.resetTimer) {
+            clearTimeout(this.resetTimer);
+        }
+        this.item.text = `$(warning) ${message}`;
+        this.item.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
+        this.item.tooltip = message;
+        this.resetTimer = setTimeout(() => {
+            this.update(this.lastEnabled, this.lastTypoCount, this.lastHasEditor);
+        }, durationMs);
+    }
     isEnabled() {
         return this.enabled;
     }
     dispose() {
+        if (this.resetTimer) {
+            clearTimeout(this.resetTimer);
+        }
         this.item.dispose();
     }
 }

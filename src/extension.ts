@@ -215,27 +215,29 @@ export async function activate(context: vscode.ExtensionContext) {
 
     // ✨ 100% AI Smart Fix & Paste (Alt+W)
     const quickFixAndCopy = async () => {
-        const editor = vscode.window.activeTextEditor;
-        const target = await getTargetTextAndRange(editor);
-        const originalText = target.text;
-
-        if (!originalText || !originalText.trim()) {
-            vscode.window.setStatusBarMessage('⚠️ No text selected or active prompt to check.', 3000);
-            return;
-        }
-
-        const currentConfig = getConfig();
-
-        // 1. Show non-intrusive status bar message (NEVER steals focus from chat input!)
-        const statusDisposable = vscode.window.setStatusBarMessage('$(sparkle) AI is proofreading & fixing prompt...');
+        // 1. Immediately indicate animated loading state on keypress (never steals focus!)
+        statusBar.showLoading('AI Proofreading prompt...');
+        const statusDisposable = vscode.window.setStatusBarMessage('$(loading~spin) ✨ AI is proofreading & fixing prompt...');
 
         try {
+            const editor = vscode.window.activeTextEditor;
+            const target = await getTargetTextAndRange(editor);
+            const originalText = target.text;
+
+            if (!originalText || !originalText.trim()) {
+                statusBar.showWarning('No text selected or prompt to check', 3000);
+                vscode.window.setStatusBarMessage('⚠️ No text selected or active prompt to check.', 3000);
+                return;
+            }
+
+            const currentConfig = getConfig();
             const result = await aiProofreader.proofread(originalText, currentConfig.aiProofreader);
             const fixedText = result.fixedText;
 
             // If no changes were needed
             if (result.changes.length === 0 && fixedText === originalText) {
                 const preview = originalText.length > 35 ? originalText.slice(0, 35) + '...' : originalText;
+                statusBar.showSuccess('Prompt is clean (No typos)', 3000);
                 vscode.window.setStatusBarMessage(`✅ No typos found in: "${preview}"`, 3000);
                 return;
             }
@@ -247,14 +249,20 @@ export async function activate(context: vscode.ExtensionContext) {
 
             if (target.targetEditor && target.targetRange) {
                 await target.targetEditor.edit(b => b.replace(target.targetRange!, fixedText));
+                statusBar.showSuccess(`Fixed in editor (${result.providerUsed})`, 4000);
                 vscode.window.setStatusBarMessage(`✨ AI Fixed (${result.providerUsed}): "${previewBefore}" → "${previewAfter}"`, 4000);
             } else {
                 // Short wait to ensure clipboard write is settled
                 await new Promise(r => setTimeout(r, 40));
                 // Direct OS paste into focused chat box where prompt is already selected
                 await SelectionCapture.pasteToOS(30);
+                statusBar.showSuccess(`Fixed & pasted (${result.providerUsed})`, 4000);
                 vscode.window.setStatusBarMessage(`✨ AI Fixed & pasted (${result.providerUsed}): "${previewAfter}"`, 4000);
             }
+        } catch (err) {
+            console.error('[QuickFixAndCopy] Error:', err);
+            statusBar.showWarning('AI proofreading failed', 3000);
+            vscode.window.setStatusBarMessage('❌ AI proofreading failed.', 3000);
         } finally {
             statusDisposable.dispose();
         }
