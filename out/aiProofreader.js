@@ -68,59 +68,64 @@ class AIProofreader {
                 durationMs: 0
             };
         }
-        // 1. Try VS Code Language Model API if auto or vscode-lm
-        if (cfg.provider === 'auto' || cfg.provider === 'vscode-lm') {
+        // 🌟 STEP 1: Always apply Tier 1 Google-Grade Local Engine FIRST (0ms, Instant, Rock-Solid)
+        // Resolves all contractions, collocations (plea tanned -> play tennis), Metaphone sound-alikes,
+        // and coding typos while safeguarding camelCase/snake_case/code identifiers.
+        const localResult = this._proofreadLocalFallback(text);
+        let candidateText = localResult.fixedText;
+        let providerUsed = 'Local Offline Engine';
+        // 🌟 STEP 2: Optional Tier 2 AI Proofreading refinement (if requested or configured)
+        // 1. VS Code native Language Model (vscode.lm)
+        if (cfg.provider === 'vscode-lm' || (cfg.provider === 'auto' && this._hasVsCodeLm())) {
             try {
-                const lmResult = await this._proofreadWithVsCodeLm(text, token);
-                if (lmResult) {
-                    return {
-                        ...lmResult,
-                        durationMs: Date.now() - start
-                    };
+                const lmResult = await this._proofreadWithVsCodeLm(candidateText, token);
+                if (lmResult && lmResult.fixedText && lmResult.fixedText.trim()) {
+                    candidateText = lmResult.fixedText;
+                    providerUsed = lmResult.providerUsed;
                 }
             }
             catch (err) {
                 console.warn('[AIProofreader] vscode.lm error or unavailable:', err);
-                // Continue to next provider
             }
         }
-        // 2. Try Custom LLM if configured
-        if (cfg.provider === 'custom-llm' && cfg.customEndpoint) {
+        // 2. Custom LLM if configured
+        else if (cfg.provider === 'custom-llm' && cfg.customEndpoint) {
             try {
-                const customResult = await this._proofreadWithCustomLlm(text, cfg, token);
-                if (customResult) {
-                    return {
-                        ...customResult,
-                        durationMs: Date.now() - start
-                    };
+                const customResult = await this._proofreadWithCustomLlm(candidateText, cfg, token);
+                if (customResult && customResult.fixedText && customResult.fixedText.trim()) {
+                    candidateText = customResult.fixedText;
+                    providerUsed = customResult.providerUsed;
                 }
             }
             catch (err) {
                 console.warn('[AIProofreader] Custom LLM error:', err);
             }
         }
-        // 3. Try LanguageTool API if auto or languagetool
-        if (cfg.provider === 'auto' || cfg.provider === 'languagetool') {
+        // 3. LanguageTool API ONLY if explicitly selected by the user
+        else if (cfg.provider === 'languagetool') {
             try {
-                const ltResult = await this._proofreadWithLanguageTool(text, cfg.languageToolEndpoint);
-                if (ltResult) {
-                    return {
-                        ...ltResult,
-                        durationMs: Date.now() - start
-                    };
+                const ltResult = await this._proofreadWithLanguageTool(candidateText, cfg.languageToolEndpoint);
+                if (ltResult && ltResult.fixedText && ltResult.fixedText.trim()) {
+                    candidateText = ltResult.fixedText;
+                    providerUsed = ltResult.providerUsed;
                 }
             }
             catch (err) {
                 console.warn('[AIProofreader] LanguageTool error:', err);
             }
         }
-        // 4. Guaranteed offline fallback: Tier 1 local rules & speller
-        const fallbackResult = this._proofreadLocalFallback(text);
+        const allChanges = this._computeWordChanges(text, candidateText, 'AI Predictive Speller');
         return {
-            ...fallbackResult,
-            providerUsed: 'Local Offline Engine',
+            originalText: text,
+            fixedText: candidateText,
+            changes: allChanges.length > 0 ? allChanges : localResult.changes,
+            providerUsed: providerUsed,
             durationMs: Date.now() - start
         };
+    }
+    _hasVsCodeLm() {
+        const vscodeAny = vscode;
+        return !!(vscodeAny.lm && typeof vscodeAny.lm.selectChatModels === 'function');
     }
     /**
      * Provider: VS Code native Language Model (vscode.lm)
@@ -130,37 +135,48 @@ class AIProofreader {
         if (!vscodeAny.lm || typeof vscodeAny.lm.selectChatModels !== 'function') {
             return null;
         }
-        const models = await vscodeAny.lm.selectChatModels();
-        if (!models || models.length === 0) {
-            return null;
-        }
-        const model = models[0];
-        const systemPrompt = 'You are an expert AI prompt spell checker and proofreader.\n' +
-            'Fix all spelling mistakes, typos, grammar errors, missing apostrophes in contractions, and contextual word slips in the user prompt.\n' +
-            'CRITICAL RULES:\n' +
-            '1. Preserve all code snippets, variable names, camelCase, snake_case, URLs, file paths, and technical keywords intact.\n' +
-            '2. Preserve exact formatting, line breaks, and punctuation tone.\n' +
-            '3. Output ONLY the corrected text. Do NOT include markdown code fences, greetings, or explanations.';
-        const messages = [
-            vscodeAny.LanguageModelChatMessage.User(`${systemPrompt}\n\nUser prompt to proofread:\n${text}`)
-        ];
-        const response = await model.sendRequest(messages, {}, token);
-        let fixedText = '';
-        for await (const chunk of response.text) {
-            fixedText += chunk;
-        }
-        fixedText = fixedText.trim();
-        // Remove enclosing quotes if the model wrapped output
-        if (fixedText.startsWith('"') && fixedText.endsWith('"') && !text.startsWith('"')) {
-            fixedText = fixedText.slice(1, -1);
-        }
-        const changes = this._computeWordChanges(text, fixedText, 'AI Predictive Speller');
-        return {
-            originalText: text,
-            fixedText: fixedText,
-            changes: changes,
-            providerUsed: `vscode.lm (${model.name || model.id || 'native'})`
+        const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve(null), 2500));
+        const runLm = async () => {
+            try {
+                const models = await vscodeAny.lm.selectChatModels();
+                if (!models || models.length === 0) {
+                    return null;
+                }
+                const model = models[0];
+                const systemPrompt = 'You are an expert AI prompt spell checker and proofreader.\n' +
+                    'Fix all spelling mistakes, typos, grammar errors, missing apostrophes in contractions, and contextual word slips in the user prompt.\n' +
+                    'CRITICAL RULES:\n' +
+                    '1. Preserve all code snippets, variable names, camelCase, snake_case, URLs, file paths, and technical keywords intact.\n' +
+                    '2. Preserve exact formatting, line breaks, and punctuation tone.\n' +
+                    '3. Output ONLY the corrected text. Do NOT include markdown code fences, greetings, or explanations.';
+                const messages = [
+                    vscodeAny.LanguageModelChatMessage.User(`${systemPrompt}\n\nUser prompt to proofread:\n${text}`)
+                ];
+                const response = await model.sendRequest(messages, {}, token);
+                let fixedText = '';
+                for await (const chunk of response.text) {
+                    fixedText += chunk;
+                }
+                fixedText = fixedText.trim();
+                // Remove enclosing quotes if the model wrapped output
+                if (fixedText.startsWith('"') && fixedText.endsWith('"') && !text.startsWith('"')) {
+                    fixedText = fixedText.slice(1, -1);
+                }
+                if (!fixedText)
+                    return null;
+                const changes = this._computeWordChanges(text, fixedText, 'AI Predictive Speller');
+                return {
+                    originalText: text,
+                    fixedText: fixedText,
+                    changes: changes,
+                    providerUsed: `vscode.lm (${model.name || model.id || 'native'})`
+                };
+            }
+            catch {
+                return null;
+            }
         };
+        return Promise.race([runLm(), timeoutPromise]);
     }
     /**
      * Provider: LanguageTool API (REST)
@@ -293,14 +309,16 @@ class AIProofreader {
                 finalText = finalText.slice(0, m.start) + m.suggestions[0] + finalText.slice(m.end);
             }
         }
-        if (changes.length === 0 && pCount > 0) {
-            changes.push({ original: 'phrase / contraction', fixed: 'corrected phrase', reason: 'Contextual collocation' });
+        const wordDiffs = this._computeWordChanges(text, finalText, 'Contextual & Spelling Fix');
+        const finalChanges = wordDiffs.length > 0 ? wordDiffs : changes;
+        if (finalChanges.length === 0 && pCount > 0) {
+            finalChanges.push({ original: 'phrase / contraction', fixed: 'corrected phrase', reason: 'Contextual collocation' });
         }
         return {
             originalText: text,
             fixedText: finalText,
-            changes: changes,
-            providerUsed: 'Local Engine'
+            changes: finalChanges,
+            providerUsed: 'Local Offline Engine'
         };
     }
     /**

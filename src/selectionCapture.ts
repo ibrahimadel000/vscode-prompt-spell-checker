@@ -200,15 +200,13 @@ export class SelectionCapture {
 
         if (!focused) {
             try {
-                await vscode.commands.executeCommand('antigravity.toggleChatFocus');
+                await vscode.commands.executeCommand('antigravity.agentSidePanel.focus');
                 focused = true;
-            } catch (err) {
-                console.warn('[SelectionCapture] antigravity.toggleChatFocus failed:', err);
-            }
+            } catch {}
         }
 
-        // Wait 150ms for the chat input box (Lexical editor) to receive full DOM focus
-        await new Promise((r) => setTimeout(r, 150));
+        // Wait 100ms for the chat input box (Lexical editor) to receive full DOM focus
+        await new Promise((r) => setTimeout(r, 100));
 
         // Now simulate OS-level Ctrl+V
         return SelectionCapture.pasteToOS(delayMs);

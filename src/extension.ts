@@ -253,7 +253,7 @@ export async function activate(context: vscode.ExtensionContext) {
                 vscode.window.setStatusBarMessage(`✨ AI Fixed (${result.providerUsed}): "${previewBefore}" → "${previewAfter}"`, 4000);
             } else {
                 // Short wait to ensure clipboard write is settled
-                await new Promise(r => setTimeout(r, 40));
+                await new Promise(r => setTimeout(r, 60));
                 // Direct OS paste into focused chat box where prompt is already selected
                 await SelectionCapture.pasteToOS(30);
                 statusBar.showSuccess(`Fixed & pasted (${result.providerUsed})`, 4000);
