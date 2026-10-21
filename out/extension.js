@@ -201,11 +201,9 @@ async function activate(context) {
             return;
         }
         const currentConfig = getConfig();
-        await vscode.window.withProgress({
-            location: vscode.ProgressLocation.Notification,
-            title: '✨ AI is proofreading & fixing prompt...',
-            cancellable: false
-        }, async () => {
+        // 1. Show non-intrusive status bar message (NEVER steals focus from chat input!)
+        const statusDisposable = vscode.window.setStatusBarMessage('$(sparkle) AI is proofreading & fixing prompt...');
+        try {
             const result = await aiProofreader.proofread(originalText, currentConfig.aiProofreader);
             const fixedText = result.fixedText;
             // If no changes were needed
@@ -222,10 +220,16 @@ async function activate(context) {
                 vscode.window.showInformationMessage(`✨ AI Fixed (${result.providerUsed}): "${previewBefore}" → "${previewAfter}"`);
             }
             else {
-                await selectionCapture_1.SelectionCapture.pasteToOS(40);
+                // Short wait to ensure clipboard write is settled
+                await new Promise(r => setTimeout(r, 40));
+                // Use pasteToChat (the exact proven method that works on Fix & Paste)
+                await selectionCapture_1.SelectionCapture.pasteToChat(30);
                 vscode.window.showInformationMessage(`✨ AI Fixed & pasted (${result.providerUsed}): "${previewAfter}"`);
             }
-        });
+        }
+        finally {
+            statusDisposable.dispose();
+        }
     };
     context.subscriptions.push(vscode.commands.registerCommand('spellAssistant.quickFixAndCopy', quickFixAndCopy));
     // ✨ AI Proofread alias command
