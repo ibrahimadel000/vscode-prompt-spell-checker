@@ -45,7 +45,7 @@ export class StatusBarManager implements vscode.Disposable {
                     `**AI Chat Spell Assistant**\n\n` +
                     `• **${typoCount}** typo(s) detected in active editor\n` +
                     `• \`Alt+W\`: **Instant Auto-Fix** (replaces prompt in-place, 0 clicks)\n` +
-                    `• \`Alt+Q\`: **Interactive Inspector** (live squigglies, suggestions & diff)\n\n` +
+                    `• \`Alt+Q\`: **Interactive Inspector** (live squigglies & suggestions)\n\n` +
                     `*Click to open AI Prompt Assistant*`
                 );
                 md.isTrusted = true;
@@ -67,7 +67,7 @@ export class StatusBarManager implements vscode.Disposable {
             const md = new vscode.MarkdownString(
                 `**AI Chat Spell Assistant**\n\n` +
                 `• \`Alt+W\`: **Instant Auto-Fix** in chat or editor (0 clicks)\n` +
-                `• \`Alt+Q\`: **Interactive Review** panel (live suggestions & diff)\n\n` +
+                `• \`Alt+Q\`: **Interactive Review** panel (live suggestions & smart fixes)\n\n` +
                 `*Click to open AI Prompt Assistant*`
             );
             md.isTrusted = true;

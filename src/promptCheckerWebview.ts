@@ -231,60 +231,7 @@ export class PromptCheckerPanel {
                         }
                         break;
                     }
-                    case 'requestDiff': {
-                        const originalText = message.text || '';
-                        const { text: phraseFixed, count: pCount } = applyContextualPhraseFixes(originalText);
-                        let finalText = phraseFixed;
-                        const config = this._getConfig();
-                        const misspellings = this._spellEngine.findMisspellings(finalText, config);
-                        let totalCount = pCount;
-                        const sorted = [...misspellings].sort((a, b) => b.start - a.start);
-                        const wordChanges: Array<{ original: string; fixed: string }> = [];
-                        for (const m of sorted) {
-                            if (m.suggestions && m.suggestions.length > 0 && m.suggestions[0] !== m.word) {
-                                wordChanges.unshift({ original: m.word, fixed: m.suggestions[0] });
-                                finalText = finalText.slice(0, m.start) + m.suggestions[0] + finalText.slice(m.end);
-                                totalCount++;
-                            }
-                        }
-                        this._panel.webview.postMessage({
-                            command: 'diffResult',
-                            originalText: originalText,
-                            fixedText: finalText,
-                            fixesCount: totalCount,
-                            wordChanges: wordChanges
-                        });
-                        break;
-                    }
-                    case 'requestAiProofread': {
-                        const originalText = message.text || '';
-                        if (!originalText.trim()) {
-                            vscode.window.showWarningMessage('Please enter text to proofread with AI.');
-                            break;
-                        }
-                        const config = this._getConfig();
-                        let result: ProofreadResult;
-                        if (this._aiProofreader) {
-                            result = await this._aiProofreader.proofread(originalText, config.aiProofreader);
-                        } else {
-                            result = {
-                                originalText,
-                                fixedText: originalText,
-                                changes: [],
-                                providerUsed: 'none',
-                                durationMs: 0
-                            };
-                        }
-                        this._panel.webview.postMessage({
-                            command: 'aiProofreadResult',
-                            originalText: result.originalText,
-                            fixedText: result.fixedText,
-                            changes: result.changes,
-                            providerUsed: result.providerUsed,
-                            durationMs: result.durationMs
-                        });
-                        break;
-                    }
+
                 }
             },
             null,
@@ -429,46 +376,6 @@ export class PromptCheckerPanel {
             flex-shrink: 0;
         }
 
-        .header-center {
-            display: inline-flex;
-            align-items: center;
-        }
-
-        .view-switch {
-            display: inline-flex;
-            background: var(--secondary-bg);
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            padding: 2px;
-            gap: 2px;
-        }
-
-        .tab-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            background: transparent;
-            border: none;
-            color: var(--muted);
-            font-family: inherit;
-            font-size: 11.5px;
-            font-weight: 500;
-            padding: 4px 10px;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: all 0.12s ease;
-        }
-
-        .tab-btn:hover {
-            color: var(--fg);
-        }
-
-        .tab-btn.active {
-            background: var(--card-bg);
-            color: var(--fg);
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-            font-weight: 600;
-        }
 
         .header-right {
             display: inline-flex;
@@ -794,110 +701,9 @@ export class PromptCheckerPanel {
             background: var(--secondary-hover);
         }
 
-        /* ── Diff Comparison View ─────────────────────────────────── */
-        .diff-container {
-            position: relative;
-            flex: 1;
-            min-height: 160px;
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.16);
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-
-        .diff-header-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 8px 14px;
-            border-bottom: 1px solid var(--border);
-            background: rgba(255, 255, 255, 0.02);
-            flex-shrink: 0;
-        }
-
-        .diff-summary-badge {
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--clean-green);
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .diff-actions {
-            display: inline-flex;
-            gap: 8px;
-        }
-
         .btn-sm {
             padding: 4px 10px !important;
             font-size: 11px !important;
-        }
-
-        .diff-content {
-            flex: 1;
-            padding: 16px 18px;
-            font-family: var(--vscode-editor-font-family, Menlo, Monaco, Consolas, monospace);
-            font-size: 13.5px;
-            line-height: 1.7;
-            white-space: pre-wrap;
-            word-break: break-word;
-            overflow-y: auto;
-        }
-
-        .diff-del {
-            background: rgba(234, 67, 53, 0.15);
-            color: #ff6b6b;
-            text-decoration: line-through;
-            padding: 1px 4px;
-            border-radius: 3px;
-            margin-right: 2px;
-        }
-
-        .diff-add {
-            background: rgba(52, 211, 153, 0.18);
-            color: #34d399;
-            font-weight: 600;
-            padding: 1px 4px;
-            border-radius: 3px;
-            margin-right: 4px;
-        }
-
-        .diff-chip {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            background: var(--secondary-bg);
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            padding: 4px 8px;
-            font-size: 11px;
-            margin: 3px;
-        }
-
-        .diff-chips-panel {
-            margin-bottom: 14px;
-            padding-bottom: 12px;
-            border-bottom: 1px dashed var(--border);
-            display: flex;
-            flex-wrap: wrap;
-            gap: 4px;
-            align-items: center;
-        }
-
-        .diff-clean-card {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100%;
-            color: var(--clean-green);
-            gap: 8px;
-            text-align: center;
-            padding: 40px 20px;
         }
 
         /* ── Action Buttons ──────────────────────────────────────── */
@@ -1154,42 +960,7 @@ export class PromptCheckerPanel {
             font-size: 11.5px;
         }
 
-        /* ── Footer Tips ─────────────────────────────────────────── */
-        .footer-tips {
-            font-size: 11px;
-            color: var(--muted);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-shrink: 0;
-            padding-top: 2px;
-        }
 
-        .footer-left {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .footer-dot {
-            opacity: 0.4;
-        }
-
-        .tip-item {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .tip-kbd {
-            font-family: inherit;
-            font-size: 10px;
-            padding: 1px 5px;
-            border-radius: 3px;
-            background: rgba(255, 255, 255, 0.08);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            color: var(--fg);
-        }
 
         /* ── Toast ───────────────────────────────────────────────── */
         .toast {
@@ -1246,18 +1017,6 @@ export class PromptCheckerPanel {
             <span>Prompt Spell Assistant</span>
         </div>
 
-        <div class="header-center">
-            <div class="view-switch">
-                <button id="tabEditor" class="tab-btn active" type="button" title="Interactive Editor View">
-                    <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                    <span>Inspector</span>
-                </button>
-                <button id="tabDiff" class="tab-btn" type="button" title="Visual Diff & Change Comparison">
-                    <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
-                    <span>Diff View</span>
-                </button>
-            </div>
-        </div>
 
         <div class="header-right">
             <span id="statsPill" class="stats-pill">0 words · 0 chars</span>
@@ -1292,7 +1051,7 @@ export class PromptCheckerPanel {
                 <span class="shortcut-tag tag-active">Current Panel</span>
             </div>
             <div class="shortcut-desc">
-                Review red wavy squigglies, click words for smart suggestions, view diffs &amp; customize dictionary.
+                Review red wavy squigglies, click words for smart suggestions &amp; customize dictionary.
             </div>
         </div>
     </section>
@@ -1329,7 +1088,7 @@ export class PromptCheckerPanel {
                     <kbd class="kbd kbd-accent">Alt + Q</kbd>
                     <div class="empty-shortcut-text">
                         <strong>Interactive Inspector Panel</strong>
-                        <span>Review red wavy squigglies, choose suggestions &amp; view diffs</span>
+                        <span>Review red wavy squigglies &amp; choose smart suggestions</span>
                     </div>
                 </div>
             </div>
@@ -1343,21 +1102,6 @@ export class PromptCheckerPanel {
         </div>
     </div>
 
-    <!-- 🔍 Diff Comparison View -->
-    <div id="diffContainer" class="diff-container" style="display: none;">
-        <div class="diff-header-bar">
-            <span id="diffSummaryBadge" class="diff-summary-badge">✨ 0 improvements found</span>
-            <div class="diff-actions">
-                <button id="btnDiffApply" class="btn btn-primary btn-sm" type="button" title="Apply all fixes to editor">
-                    <span>Apply Fixes</span>
-                </button>
-                <button id="btnDiffCopy" class="btn btn-secondary btn-sm" type="button" title="Copy fixed text">
-                    <span>Copy Fixed Prompt</span>
-                </button>
-            </div>
-        </div>
-        <div class="diff-content" id="diffContent"></div>
-    </div>
 
     <!-- ⚡ Action Buttons -->
     <div class="actions-bar">
@@ -1412,19 +1156,7 @@ export class PromptCheckerPanel {
         </div>
     </div>
 
-    <!-- 💡 Footer Tips -->
-    <footer class="footer-tips">
-        <div class="footer-left">
-            <span class="tip-item"><kbd class="tip-kbd">Alt+W</kbd> Instant fix in chat</span>
-            <span class="footer-dot">•</span>
-            <span class="tip-item"><kbd class="tip-kbd">Alt+Q</kbd> Interactive inspector</span>
-            <span class="footer-dot">•</span>
-            <span class="tip-item"><kbd class="tip-kbd">Ctrl+Shift+Enter</kbd> Fix &amp; paste</span>
-        </div>
-        <div>
-            <span>Click or right-click any red underline to choose suggestions</span>
-        </div>
-    </footer>
+
 
     <!-- 🌟 Google Speller Floating Context Menu -->
     <div id="spellerContextMenu" class="speller-context-menu" style="display: none;">
@@ -1478,15 +1210,7 @@ export class PromptCheckerPanel {
         const cardAltW = document.getElementById('cardAltW');
         const cardAltQ = document.getElementById('cardAltQ');
 
-        // View Tabs and Diff elements
-        const tabEditor = document.getElementById('tabEditor');
-        const tabDiff = document.getElementById('tabDiff');
-        const editorContainer = document.getElementById('editorContainer');
-        const diffContainer = document.getElementById('diffContainer');
-        const diffSummaryBadge = document.getElementById('diffSummaryBadge');
-        const diffContent = document.getElementById('diffContent');
-        const btnDiffApply = document.getElementById('btnDiffApply');
-        const btnDiffCopy = document.getElementById('btnDiffCopy');
+
         const emptyOverlay = document.getElementById('emptyOverlay');
         const btnEmptyPaste = document.getElementById('btnEmptyPaste');
 
@@ -1504,7 +1228,6 @@ export class PromptCheckerPanel {
         let debounceTimer = null;
         let historyStack = [];
         let redoStack = [];
-        let lastDiffResult = null;
 
         function updateEmptyState() {
             if (!textarea.value || textarea.value.trim().length === 0) {
@@ -1965,47 +1688,6 @@ export class PromptCheckerPanel {
             });
         }
 
-        if (tabEditor && tabDiff) {
-            tabEditor.addEventListener('click', () => {
-                tabEditor.classList.add('active');
-                tabDiff.classList.remove('active');
-                if (editorContainer) editorContainer.style.display = 'block';
-                if (diffContainer) diffContainer.style.display = 'none';
-                textarea.focus();
-            });
-
-            tabDiff.addEventListener('click', () => {
-                tabDiff.classList.add('active');
-                tabEditor.classList.remove('active');
-                if (editorContainer) editorContainer.style.display = 'none';
-                if (diffContainer) diffContainer.style.display = 'flex';
-                vscode.postMessage({ command: 'requestAiProofread', text: textarea.value });
-            });
-        }
-
-        if (btnDiffApply) {
-            btnDiffApply.addEventListener('click', () => {
-                if (lastDiffResult && lastDiffResult.fixedText) {
-                    pushHistory();
-                    textarea.value = lastDiffResult.fixedText;
-                    if (tabEditor) tabEditor.click();
-                    updateEmptyState();
-                    updateStats();
-                    renderHighlights();
-                    vscode.postMessage({ command: 'checkText', text: textarea.value });
-                    showToast('Applied all fixes to editor!', '⚡');
-                }
-            });
-        }
-
-        if (btnDiffCopy) {
-            btnDiffCopy.addEventListener('click', () => {
-                if (lastDiffResult && lastDiffResult.fixedText) {
-                    vscode.postMessage({ command: 'copyToClipboard', text: lastDiffResult.fixedText });
-                    showToast('Copied fixed prompt!', '✓');
-                }
-            });
-        }
 
         btnClear.addEventListener('click', () => {
             if (textarea.value.trim()) {
@@ -2043,82 +1725,7 @@ export class PromptCheckerPanel {
                     renderHighlights();
                     renderResults(currentMisspellings);
                     break;
-                case 'diffResult':
-                    lastDiffResult = msg;
-                    renderDiffView(msg);
-                    break;
-                case 'aiProofreadResult':
-                    lastDiffResult = {
-                        originalText: msg.originalText,
-                        fixedText: msg.fixedText,
-                        fixesCount: (msg.changes || []).length,
-                        wordChanges: msg.changes,
-                        providerUsed: msg.providerUsed,
-                        durationMs: msg.durationMs
-                    };
-                    if (tabDiff) tabDiff.click();
-                    renderDiffView(lastDiffResult);
-                    showToast('Proofread ready (' + (msg.providerUsed || 'Local') + (msg.durationMs ? ' · ' + msg.durationMs + 'ms' : '') + ')', '✓');
-                    break;
-            }
-        });
 
-        // ── Render Diff Comparison View ───────────────────────────
-        function renderDiffView(msg) {
-            if (!diffContent || !diffSummaryBadge) return;
-            const fixesCount = msg.fixesCount || 0;
-            const orig = msg.originalText || '';
-            const fixed = msg.fixedText || '';
-
-            if (fixesCount === 0 || orig === fixed) {
-                diffSummaryBadge.textContent = '✨ 100% Clean';
-                diffSummaryBadge.style.color = 'var(--clean-green)';
-                if (btnDiffApply) btnDiffApply.disabled = true;
-                diffContent.innerHTML =
-                    '<div class="diff-clean-card">' +
-                        '<div style="font-size:28px;">✓</div>' +
-                        '<div style="font-weight:600;font-size:14px;color:var(--clean-green);">Prompt is 100% Clean!</div>' +
-                        '<div style="font-size:12px;color:var(--muted);max-width:320px;">No typos, phrase errors, contractions, or developer slip-ups found in this prompt.</div>' +
-                    '</div>';
-                return;
-            }
-
-            diffSummaryBadge.textContent = fixesCount + (fixesCount === 1 ? ' improvement found' : ' improvements found');
-            diffSummaryBadge.style.color = 'var(--clean-green)';
-            if (btnDiffApply) btnDiffApply.disabled = false;
-
-            let html = '';
-
-            if (msg.providerUsed) {
-                html += '<div style="margin-bottom:10px;display:flex;align-items:center;gap:6px;">' +
-                    '<span style="font-size:10.5px;padding:2px 8px;border-radius:10px;background:rgba(56,189,248,0.1);color:#38bdf8;border:1px solid rgba(56,189,248,0.3);font-weight:600;">Engine: ' + escapeHtml(msg.providerUsed) + (msg.durationMs ? ' · ' + msg.durationMs + 'ms' : '') + '</span>' +
-                '</div>';
-            }
-
-            if (msg.wordChanges && msg.wordChanges.length > 0) {
-                html += '<div class="diff-chips-panel">';
-                html += '<span style="font-size:11px;color:var(--muted);margin-right:4px;">Corrections:</span>';
-                msg.wordChanges.forEach(c => {
-                    const titleAttr = c.reason ? ' title="' + escapeHtml(c.reason) + '"' : '';
-                    html += '<span class="diff-chip"' + titleAttr + '><span class="diff-del">' + escapeHtml(c.original) + '</span> → <span class="diff-add">' + escapeHtml(c.fixed) + '</span></span>';
-                });
-                html += '</div>';
-            }
-
-            let preview = escapeHtml(fixed);
-            if (msg.wordChanges) {
-                msg.wordChanges.forEach(c => {
-                    const escFixed = escapeHtml(c.fixed);
-                    const rep = '<span class="diff-add" title="Was: &quot;' + escapeHtml(c.original) + '&quot;">' + escFixed + '</span>';
-                    preview = preview.split(escFixed).join(rep);
-                });
-            }
-
-            html += '<div style="font-size:11px;font-weight:600;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;">Clean Prompt Preview</div>';
-            html += '<div style="background:var(--secondary-bg);padding:14px;border-radius:6px;border:1px solid var(--border);line-height:1.7;">' + preview + '</div>';
-
-            diffContent.innerHTML = html;
-        }
 
         // ── Update Status Badge ───────────────────────────────────
         function renderResults(misspellings) {

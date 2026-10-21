@@ -30,9 +30,9 @@ Since VS Code extensions cannot directly inject squiggly lines into sidebar chat
 ---
 
 ## 📦 Current Release
-* Current version: **`0.4.0`**
-* Package file: **`ai-chat-spell-assistant-0.4.0.vsix`**
-* Test command: `antigravity-ide --install-extension ai-chat-spell-assistant-0.4.0.vsix --force`
+* Current version: **`0.4.6`**
+* Package file: **`ai-chat-spell-assistant-0.4.6.vsix`**
+* Test command: `antigravity-ide --install-extension ai-chat-spell-assistant-0.4.6.vsix --force`
 
 ---
 
@@ -57,6 +57,6 @@ Since VS Code extensions cannot directly inject squiggly lines into sidebar chat
 | Shortcut | Action | Description |
 |---|---|---|
 | `Alt+W` | ✨ **AI Fix & Paste Prompt** | The one universal shortcut: fixes grammar, intent, and typos, then pastes directly into AI Chat. |
-| `Alt+Q` | 🔍 **Open Spell Checker Window** | Opens Google Speller text box with live squigglies, Diff tab, and token metrics. |
+| `Alt+Q` | 🔍 **Open Spell Checker Window** | Opens Google Speller text box with live squigglies, suggestions, and token metrics. |
 | `Ctrl+Shift+Enter` | ✨ **Fix & Paste to Chat** | From the webview: AI-fixes and pastes prompt directly back into AI Chat. |
 | `Ctrl+Enter` | 📋 **Copy Clean Prompt** | Copies clean text to clipboard without closing window. |
