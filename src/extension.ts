@@ -220,7 +220,7 @@ export async function activate(context: vscode.ExtensionContext) {
         const originalText = target.text;
 
         if (!originalText || !originalText.trim()) {
-            vscode.window.showWarningMessage('No text selected or active prompt to check.');
+            vscode.window.setStatusBarMessage('⚠️ No text selected or active prompt to check.', 3000);
             return;
         }
 
@@ -236,7 +236,7 @@ export async function activate(context: vscode.ExtensionContext) {
             // If no changes were needed
             if (result.changes.length === 0 && fixedText === originalText) {
                 const preview = originalText.length > 35 ? originalText.slice(0, 35) + '...' : originalText;
-                vscode.window.showInformationMessage(`✅ No typos found in: "${preview}"`);
+                vscode.window.setStatusBarMessage(`✅ No typos found in: "${preview}"`, 3000);
                 return;
             }
 
@@ -247,13 +247,13 @@ export async function activate(context: vscode.ExtensionContext) {
 
             if (target.targetEditor && target.targetRange) {
                 await target.targetEditor.edit(b => b.replace(target.targetRange!, fixedText));
-                vscode.window.showInformationMessage(`✨ AI Fixed (${result.providerUsed}): "${previewBefore}" → "${previewAfter}"`);
+                vscode.window.setStatusBarMessage(`✨ AI Fixed (${result.providerUsed}): "${previewBefore}" → "${previewAfter}"`, 4000);
             } else {
                 // Short wait to ensure clipboard write is settled
                 await new Promise(r => setTimeout(r, 40));
-                // Use pasteToChat (the exact proven method that works on Fix & Paste)
-                await SelectionCapture.pasteToChat(30);
-                vscode.window.showInformationMessage(`✨ AI Fixed & pasted (${result.providerUsed}): "${previewAfter}"`);
+                // Direct OS paste into focused chat box where prompt is already selected
+                await SelectionCapture.pasteToOS(30);
+                vscode.window.setStatusBarMessage(`✨ AI Fixed & pasted (${result.providerUsed}): "${previewAfter}"`, 4000);
             }
         } finally {
             statusDisposable.dispose();

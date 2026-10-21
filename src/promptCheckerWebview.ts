@@ -153,7 +153,7 @@ export class PromptCheckerPanel {
 
                         // Focus the AI Chat box and paste the clean prompt
                         await SelectionCapture.pasteToChat(30);
-                        vscode.window.showInformationMessage('✨ Fixed & pasted back into chat!');
+                        vscode.window.setStatusBarMessage('✨ Fixed & pasted back into chat!', 4000);
                         break;
                     }
                     case 'applyAiAutoFix': {

@@ -171,26 +171,18 @@ export class SelectionCapture {
 
     /**
      * Pastes clipboard content directly into the Antigravity/AI Chat box by:
-     * 1) Focusing the chat input box via IDE commands (antigravity.toggleChatFocus, etc.)
+     * 1) Focusing the chat input box via non-toggling IDE commands (antigravity.openChatView, workbench.action.chat.focusInput)
      * 2) Waiting briefly for DOM focus transition in the Lexical input
      * 3) Simulating Ctrl+V via copy_selection.exe --paste
      */
     public static async pasteToChat(delayMs: number = 30): Promise<boolean> {
         let focused = false;
 
+        // Try non-toggling focus commands first so an open chat panel is never accidentally toggled closed
         try {
-            await vscode.commands.executeCommand('antigravity.toggleChatFocus');
+            await vscode.commands.executeCommand('antigravity.openChatView');
             focused = true;
-        } catch (err) {
-            console.warn('[SelectionCapture] antigravity.toggleChatFocus failed:', err);
-        }
-
-        if (!focused) {
-            try {
-                await vscode.commands.executeCommand('antigravity.agentSidePanel.focus');
-                focused = true;
-            } catch {}
-        }
+        } catch {}
 
         if (!focused) {
             try {
@@ -204,6 +196,15 @@ export class SelectionCapture {
                 await vscode.commands.executeCommand('workbench.action.chat.open');
                 focused = true;
             } catch {}
+        }
+
+        if (!focused) {
+            try {
+                await vscode.commands.executeCommand('antigravity.toggleChatFocus');
+                focused = true;
+            } catch (err) {
+                console.warn('[SelectionCapture] antigravity.toggleChatFocus failed:', err);
+            }
         }
 
         // Wait 150ms for the chat input box (Lexical editor) to receive full DOM focus

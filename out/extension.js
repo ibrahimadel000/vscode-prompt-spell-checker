@@ -197,7 +197,7 @@ async function activate(context) {
         const target = await getTargetTextAndRange(editor);
         const originalText = target.text;
         if (!originalText || !originalText.trim()) {
-            vscode.window.showWarningMessage('No text selected or active prompt to check.');
+            vscode.window.setStatusBarMessage('⚠️ No text selected or active prompt to check.', 3000);
             return;
         }
         const currentConfig = getConfig();
@@ -209,7 +209,7 @@ async function activate(context) {
             // If no changes were needed
             if (result.changes.length === 0 && fixedText === originalText) {
                 const preview = originalText.length > 35 ? originalText.slice(0, 35) + '...' : originalText;
-                vscode.window.showInformationMessage(`✅ No typos found in: "${preview}"`);
+                vscode.window.setStatusBarMessage(`✅ No typos found in: "${preview}"`, 3000);
                 return;
             }
             await vscode.env.clipboard.writeText(fixedText);
@@ -217,14 +217,14 @@ async function activate(context) {
             const previewAfter = fixedText.trim().length > 25 ? fixedText.trim().slice(0, 25) + '...' : fixedText.trim();
             if (target.targetEditor && target.targetRange) {
                 await target.targetEditor.edit(b => b.replace(target.targetRange, fixedText));
-                vscode.window.showInformationMessage(`✨ AI Fixed (${result.providerUsed}): "${previewBefore}" → "${previewAfter}"`);
+                vscode.window.setStatusBarMessage(`✨ AI Fixed (${result.providerUsed}): "${previewBefore}" → "${previewAfter}"`, 4000);
             }
             else {
                 // Short wait to ensure clipboard write is settled
                 await new Promise(r => setTimeout(r, 40));
-                // Use pasteToChat (the exact proven method that works on Fix & Paste)
-                await selectionCapture_1.SelectionCapture.pasteToChat(30);
-                vscode.window.showInformationMessage(`✨ AI Fixed & pasted (${result.providerUsed}): "${previewAfter}"`);
+                // Direct OS paste into focused chat box where prompt is already selected
+                await selectionCapture_1.SelectionCapture.pasteToOS(30);
+                vscode.window.setStatusBarMessage(`✨ AI Fixed & pasted (${result.providerUsed}): "${previewAfter}"`, 4000);
             }
         }
         finally {
