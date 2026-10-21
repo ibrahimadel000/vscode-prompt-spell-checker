@@ -69,7 +69,6 @@ function getConfig() {
         ignoreAllCaps: cfg.get('ignoreAllCaps', true),
         maxSuggestions: cfg.get('maxSuggestions', 5),
         diagnosticSeverity: cfg.get('diagnosticSeverity', 'error'),
-        defaultFixEngine: cfg.get('defaultFixEngine', 'ai'),
         aiProofreader: {
             enabled: aiCfg.enabled ?? true,
             provider: aiCfg.provider ?? 'auto',
@@ -192,23 +191,7 @@ async function activate(context) {
         promptCheckerWebview_1.PromptCheckerPanel.createOrShow(context.extensionUri, spellEngine, userDictionary, getConfig, aiProofreader, target.text, target.targetEditor, target.targetRange);
     };
     context.subscriptions.push(vscode.commands.registerCommand('spellAssistant.openPromptChecker', openPromptChecker));
-    // 🛠️ Local 0ms fast rule & Hunspell fixer helper
-    const runLocalFix = (text) => {
-        const { text: phraseFixedText, count: phraseCount } = (0, typoRules_1.applyContextualPhraseFixes)(text);
-        let fixedText = phraseFixedText;
-        const currentConfig = getConfig();
-        const misspellings = spellEngine.findMisspellings(fixedText, currentConfig);
-        const sorted = [...misspellings].sort((a, b) => b.start - a.start);
-        let fixedCount = phraseCount;
-        for (const m of sorted) {
-            if (m.suggestions && m.suggestions.length > 0 && m.suggestions[0] !== m.word) {
-                fixedText = fixedText.slice(0, m.start) + m.suggestions[0] + fixedText.slice(m.end);
-                fixedCount++;
-            }
-        }
-        return { fixedText, fixedCount };
-    };
-    // ✨ Primary Auto-Fix & Paste (Default: AI Predictive Proofreader, Alt+W)
+    // ✨ 100% AI Smart Fix & Paste (Alt+W)
     const quickFixAndCopy = async () => {
         const editor = vscode.window.activeTextEditor;
         const target = await getTargetTextAndRange(editor);
@@ -218,79 +201,34 @@ async function activate(context) {
             return;
         }
         const currentConfig = getConfig();
-        const useAi = currentConfig.defaultFixEngine !== 'local';
-        if (useAi && aiProofreader) {
-            await vscode.window.withProgress({
-                location: vscode.ProgressLocation.Notification,
-                title: '✨ AI is predicting prompt corrections...',
-                cancellable: false
-            }, async () => {
-                const result = await aiProofreader.proofread(originalText, currentConfig.aiProofreader);
-                const fixedText = result.fixedText;
-                await vscode.env.clipboard.writeText(fixedText);
-                const previewBefore = originalText.trim().length > 25 ? originalText.trim().slice(0, 25) + '...' : originalText.trim();
-                const previewAfter = fixedText.trim().length > 25 ? fixedText.trim().slice(0, 25) + '...' : fixedText.trim();
-                if (target.targetEditor && target.targetRange) {
-                    await target.targetEditor.edit(b => b.replace(target.targetRange, fixedText));
-                    vscode.window.showInformationMessage(`✨ AI Fixed (${result.providerUsed}): "${previewBefore}" → "${previewAfter}"`);
-                }
-                else {
-                    await selectionCapture_1.SelectionCapture.pasteToOS(40);
-                    vscode.window.showInformationMessage(`✨ AI Fixed & pasted (${result.providerUsed}): "${previewAfter}"`);
-                }
-            });
-        }
-        else {
-            // Local 0ms fallback
-            const { fixedText, fixedCount } = runLocalFix(originalText);
-            if (fixedCount === 0 && fixedText === originalText) {
+        await vscode.window.withProgress({
+            location: vscode.ProgressLocation.Notification,
+            title: '✨ AI is proofreading & fixing prompt...',
+            cancellable: false
+        }, async () => {
+            const result = await aiProofreader.proofread(originalText, currentConfig.aiProofreader);
+            const fixedText = result.fixedText;
+            // If no changes were needed
+            if (result.changes.length === 0 && fixedText === originalText) {
                 const preview = originalText.length > 35 ? originalText.slice(0, 35) + '...' : originalText;
                 vscode.window.showInformationMessage(`✅ No typos found in: "${preview}"`);
                 return;
             }
             await vscode.env.clipboard.writeText(fixedText);
-            const previewBefore = originalText.trim().length > 30 ? originalText.trim().slice(0, 30) + '...' : originalText.trim();
-            const previewAfter = fixedText.trim().length > 30 ? fixedText.trim().slice(0, 30) + '...' : fixedText.trim();
+            const previewBefore = originalText.trim().length > 25 ? originalText.trim().slice(0, 25) + '...' : originalText.trim();
+            const previewAfter = fixedText.trim().length > 25 ? fixedText.trim().slice(0, 25) + '...' : fixedText.trim();
             if (target.targetEditor && target.targetRange) {
-                await target.targetEditor.edit(builder => builder.replace(target.targetRange, fixedText));
-                vscode.window.showInformationMessage(`⚡ Fast Local Fixed: "${previewBefore}" → "${previewAfter}"`);
+                await target.targetEditor.edit(b => b.replace(target.targetRange, fixedText));
+                vscode.window.showInformationMessage(`✨ AI Fixed (${result.providerUsed}): "${previewBefore}" → "${previewAfter}"`);
             }
             else {
                 await selectionCapture_1.SelectionCapture.pasteToOS(40);
-                vscode.window.showInformationMessage(`⚡ Fast Local Fixed & pasted: "${previewAfter}"`);
+                vscode.window.showInformationMessage(`✨ AI Fixed & pasted (${result.providerUsed}): "${previewAfter}"`);
             }
-        }
+        });
     };
     context.subscriptions.push(vscode.commands.registerCommand('spellAssistant.quickFixAndCopy', quickFixAndCopy));
-    // ⚡ Dedicated Fast Local Fix & Paste (0ms Offline, Alt+Shift+W)
-    const localQuickFixAndCopy = async () => {
-        const editor = vscode.window.activeTextEditor;
-        const target = await getTargetTextAndRange(editor);
-        const originalText = target.text;
-        if (!originalText || !originalText.trim()) {
-            vscode.window.showWarningMessage('No text selected or active prompt to check.');
-            return;
-        }
-        const { fixedText, fixedCount } = runLocalFix(originalText);
-        if (fixedCount === 0 && fixedText === originalText) {
-            const preview = originalText.length > 35 ? originalText.slice(0, 35) + '...' : originalText;
-            vscode.window.showInformationMessage(`✅ No typos found in: "${preview}"`);
-            return;
-        }
-        await vscode.env.clipboard.writeText(fixedText);
-        const previewBefore = originalText.trim().length > 30 ? originalText.trim().slice(0, 30) + '...' : originalText.trim();
-        const previewAfter = fixedText.trim().length > 30 ? fixedText.trim().slice(0, 30) + '...' : fixedText.trim();
-        if (target.targetEditor && target.targetRange) {
-            await target.targetEditor.edit(builder => builder.replace(target.targetRange, fixedText));
-            vscode.window.showInformationMessage(`⚡ Fast Local Fixed (0ms): "${previewBefore}" → "${previewAfter}"`);
-        }
-        else {
-            await selectionCapture_1.SelectionCapture.pasteToOS(40);
-            vscode.window.showInformationMessage(`⚡ Fast Local Fixed & pasted (0ms): "${previewAfter}"`);
-        }
-    };
-    context.subscriptions.push(vscode.commands.registerCommand('spellAssistant.localQuickFixAndCopy', localQuickFixAndCopy));
-    // ✨ AI Predict & Proofread alias command
+    // ✨ AI Proofread alias command
     context.subscriptions.push(vscode.commands.registerCommand('spellAssistant.aiProofread', quickFixAndCopy));
     // Alt+Q: Scan document or open prompt checker
     context.subscriptions.push(vscode.commands.registerCommand('spellAssistant.scanDocument', () => {

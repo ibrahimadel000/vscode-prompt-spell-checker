@@ -46,7 +46,6 @@ export interface ExtensionConfig {
     ignoreAllCaps: boolean;
     maxSuggestions: number;
     diagnosticSeverity?: 'error' | 'warning' | 'information';
-    defaultFixEngine?: 'ai' | 'local';
     aiProofreader?: AIProofreaderConfig;
 }
 

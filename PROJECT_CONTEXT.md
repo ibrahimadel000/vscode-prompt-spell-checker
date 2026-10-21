@@ -30,34 +30,33 @@ Since VS Code extensions cannot directly inject squiggly lines into sidebar chat
 ---
 
 ## 📦 Current Release
-* Current version: **`0.3.9`**
-* Package file: **`ai-chat-spell-assistant-0.3.9.vsix`**
-* Test command: `antigravity-ide --install-extension ai-chat-spell-assistant-0.3.9.vsix --force`
+* Current version: **`0.4.0`**
+* Package file: **`ai-chat-spell-assistant-0.4.0.vsix`**
+* Test command: `antigravity-ide --install-extension ai-chat-spell-assistant-0.4.0.vsix --force`
 
 ---
 
-## 🏛️ Hybrid Speller & Predictive Architecture (v0.3.9)
+## 🏛️ Architecture: Pure AI Prompt Proofreader & Local Instant Squiggly Engine (v0.4.0)
 
-### Tier 1: Instant Local 0ms Engine
-- **Hunspell (`nspell`) + Metaphone Phonetic Index:** Sound-alike matching (`pley tannes` → `play tennis`, `spller` → `speller`).
-- **Google Web N-Gram Frequency Table:** Prioritizes real-world high-frequency verbs and nouns over archaic words.
-- **Contextual Collocation & Malapropism Engine:** Fixes homophones and idiom slips (`i can't plea tanned` → `I can't play tennis`, `peace of paper` → `piece of paper`).
-- **Code Immunity Shield:** Automatically ignores `camelCase`, `snake_case`, URLs, endpoints, file paths, Markdown code fences, and developer terms.
-
-### Tier 2: AI Predictive Proofreader & Grammar Service (PRIMARY)
+### 1. Pure AI Fixing Engine (100% of all Fix Actions)
 - **`vscode.lm` Native Language Model:** Zero API keys needed; taps into VS Code / Antigravity IDE's native AI models.
-- **LanguageTool REST API:** Seamless grammar, subject-verb agreement (`it retun` → `it returns`), and punctuation checking via `https://api.languagetool.org/v2/check` or self-hosted server.
+- **LanguageTool REST API:** Seamless grammar, subject-verb agreement (`it retun` → `it returns`), homophones, and punctuation checking via `https://api.languagetool.org/v2/check` or self-hosted server.
 - **Custom LLM Endpoint:** Optional support for Groq (`llama-3.3-70b-versatile`), OpenAI, or local Ollama (`localhost:11434`).
-- **Guaranteed Offline Fallback:** Gracefully fails over to Tier 1 local engine if offline.
+- **Silent Offline Fallback:** Gracefully fails over to the local engine if the machine is offline.
+
+### 2. Local Instant 0ms Engine (Squigglies & Offline Safety Net)
+- **Hunspell (`nspell`) + Metaphone Phonetic Index:** Sound-alike matching (`pley tannes` → `play tennis`).
+- **Google Web N-Gram Frequency Table:** Prioritizes real-world high-frequency verbs and nouns.
+- **Code Immunity Shield:** Automatically ignores `camelCase`, `snake_case`, URLs, endpoints, file paths, Markdown code fences, and developer terms.
+- **Role:** Exclusively handles 0ms keystroke red underlines as you type, and acts as silent offline failover.
 
 ---
 
 ## ⌨️ Workflow Shortcuts & Actions
 
-| Shortcut | Action | Engine | Description |
-|---|---|---|---|
-| `Alt+W` | ✨ **AI Smart Fix & Paste** | **AI (Primary)** | Intelligently fixes grammar, intent, and typos, then pastes in-place with silent offline fallback. |
-| `Alt+Shift+W` | ⚡ **Fast Local Fix & Paste** | **Local (0ms)** | Instantaneous dictionary & phonetic fix without network or AI latency. |
-| `Alt+Q` | 🔍 **Open Spell Checker Window** | **Interactive** | Opens Google Speller text box with live squigglies, Diff tab, and token metrics. |
-| `Ctrl+Shift+Enter` | ✨ **AI Fix & Paste to Chat** | **AI (Primary)** | Proofreads and replaces misspelled prompt directly into AI Chat input from the webview. |
-| `Ctrl+Enter` | 📋 **Copy Clean Prompt** | **Utility** | Copies clean text to clipboard without closing window. |
+| Shortcut | Action | Description |
+|---|---|---|
+| `Alt+W` | ✨ **AI Fix & Paste Prompt** | The one universal shortcut: fixes grammar, intent, and typos, then pastes directly into AI Chat. |
+| `Alt+Q` | 🔍 **Open Spell Checker Window** | Opens Google Speller text box with live squigglies, Diff tab, and token metrics. |
+| `Ctrl+Shift+Enter` | ✨ **Fix & Paste to Chat** | From the webview: AI-fixes and pastes prompt directly back into AI Chat. |
+| `Ctrl+Enter` | 📋 **Copy Clean Prompt** | Copies clean text to clipboard without closing window. |
