@@ -44,9 +44,9 @@ export class StatusBarManager implements vscode.Disposable {
                 const md = new vscode.MarkdownString(
                     `**AI Chat Spell Assistant**\n\n` +
                     `• **${typoCount}** typo(s) detected in active editor\n` +
-                    `• \`Alt+W\`: Quick Fix & Copy\n` +
-                    `• \`Alt+Q\`: Quick Fix / Prompt Checker\n\n` +
-                    `*Click to open AI Prompt Checker*`
+                    `• \`Alt+W\`: **Instant Auto-Fix** (replaces prompt in-place, 0 clicks)\n` +
+                    `• \`Alt+Q\`: **Interactive Inspector** (live squigglies, suggestions & diff)\n\n` +
+                    `*Click to open AI Prompt Assistant*`
                 );
                 md.isTrusted = true;
                 this.item.tooltip = md;
@@ -54,15 +54,24 @@ export class StatusBarManager implements vscode.Disposable {
                 this.item.text = '$(check) Spell: Clean';
                 const md = new vscode.MarkdownString(
                     `**AI Chat Spell Assistant**\n\n` +
-                    `• Active document is **100% clean**\n\n` +
-                    `*Click to open AI Prompt Checker*`
+                    `• Active document is **100% clean**\n` +
+                    `• \`Alt+W\`: **Instant Auto-Fix** in chat box\n` +
+                    `• \`Alt+Q\`: **Interactive Inspector** panel\n\n` +
+                    `*Click to open AI Prompt Assistant*`
                 );
                 md.isTrusted = true;
                 this.item.tooltip = md;
             }
         } else {
             this.item.text = '$(sparkle) Prompt Checker';
-            this.item.tooltip = 'AI Chat Spell Assistant — Click to open Prompt Checker (Shift+Alt+Q / Alt+W)';
+            const md = new vscode.MarkdownString(
+                `**AI Chat Spell Assistant**\n\n` +
+                `• \`Alt+W\`: **Instant Auto-Fix** in chat or editor (0 clicks)\n` +
+                `• \`Alt+Q\`: **Interactive Review** panel (live suggestions & diff)\n\n` +
+                `*Click to open AI Prompt Assistant*`
+            );
+            md.isTrusted = true;
+            this.item.tooltip = md;
         }
     }
 

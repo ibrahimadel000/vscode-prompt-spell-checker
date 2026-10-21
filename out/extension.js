@@ -201,8 +201,8 @@ async function activate(context) {
             const target = await getTargetTextAndRange(editor);
             const originalText = target.text;
             if (!originalText || !originalText.trim()) {
-                statusBar.showWarning('No text selected or prompt to check', 3000);
-                vscode.window.setStatusBarMessage('⚠️ No text selected or active prompt to check.', 3000);
+                statusBar.showWarning('No text captured (Try Alt+Q)', 3000);
+                vscode.window.setStatusBarMessage('⚠️ No text captured. Tip: Press Alt+Q to open the Spell Inspector.', 3500);
                 return;
             }
             const currentConfig = getConfig();

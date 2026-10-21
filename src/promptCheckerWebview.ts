@@ -335,15 +335,16 @@ export class PromptCheckerPanel {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Prompt Spell Checker</title>
+    <title>AI Prompt Spell Assistant</title>
     <style>
         :root {
             --bg: var(--vscode-editor-background, #1e1e1e);
             --fg: var(--vscode-editor-foreground, #cccccc);
             --muted: var(--vscode-descriptionForeground, #888888);
             --card-bg: var(--vscode-editorWidget-background, #252526);
-            --border: var(--vscode-widget-border, rgba(255, 255, 255, 0.08));
-            --border-hover: rgba(255, 255, 255, 0.16);
+            --card-hover: rgba(255, 255, 255, 0.04);
+            --border: var(--vscode-widget-border, rgba(255, 255, 255, 0.09));
+            --border-hover: rgba(255, 255, 255, 0.18);
             --focus-border: var(--vscode-focusBorder, #007fd4);
 
             /* Primary Action Button - Modern, confident accent */
@@ -363,7 +364,7 @@ export class PromptCheckerPanel {
             --menu-hover: var(--vscode-menu-selectionBackground, #04395e);
             --menu-hover-fg: var(--vscode-menu-selectionForeground, #ffffff);
 
-            /* Speller Underline & Status */
+            /* Speller Underline & Status Colors */
             --typo-red: #ea4335;
             --typo-bg-hover: rgba(234, 67, 53, 0.14);
             --clean-green: #34d399;
@@ -372,6 +373,14 @@ export class PromptCheckerPanel {
             --error-red: #f87171;
             --error-bg: rgba(248, 113, 113, 0.1);
             --error-border: rgba(248, 113, 113, 0.25);
+
+            /* Mode Accents */
+            --accent-instant: #38bdf8;
+            --accent-instant-bg: rgba(56, 189, 248, 0.08);
+            --accent-instant-border: rgba(56, 189, 248, 0.22);
+            --accent-review: #a78bfa;
+            --accent-review-bg: rgba(167, 139, 250, 0.08);
+            --accent-review-border: rgba(167, 139, 250, 0.25);
         }
 
         * {
@@ -387,10 +396,10 @@ export class PromptCheckerPanel {
             font-size: var(--vscode-font-size, 13px);
             color: var(--fg);
             background-color: var(--bg);
-            padding: 16px 20px;
+            padding: 14px 18px;
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 10px;
             height: 100vh;
             overflow: hidden;
             user-select: none;
@@ -402,7 +411,7 @@ export class PromptCheckerPanel {
             justify-content: space-between;
             align-items: center;
             flex-shrink: 0;
-            padding-bottom: 2px;
+            gap: 12px;
         }
 
         .brand {
@@ -416,14 +425,13 @@ export class PromptCheckerPanel {
         }
 
         .brand-icon {
-            opacity: 0.85;
             color: var(--primary-hover);
+            flex-shrink: 0;
         }
 
-        .header-right {
+        .header-center {
             display: inline-flex;
             align-items: center;
-            gap: 8px;
         }
 
         .view-switch {
@@ -436,13 +444,16 @@ export class PromptCheckerPanel {
         }
 
         .tab-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
             background: transparent;
             border: none;
             color: var(--muted);
             font-family: inherit;
-            font-size: 11px;
+            font-size: 11.5px;
             font-weight: 500;
-            padding: 3px 9px;
+            padding: 4px 10px;
             border-radius: 4px;
             cursor: pointer;
             transition: all 0.12s ease;
@@ -459,6 +470,12 @@ export class PromptCheckerPanel {
             font-weight: 600;
         }
 
+        .header-right {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
         .stats-pill {
             font-size: 11px;
             color: var(--muted);
@@ -467,6 +484,7 @@ export class PromptCheckerPanel {
             background: var(--secondary-bg);
             border: 1px solid var(--border);
             border-radius: 12px;
+            white-space: nowrap;
         }
 
         .status-pill {
@@ -475,9 +493,10 @@ export class PromptCheckerPanel {
             gap: 6px;
             font-size: 11px;
             font-weight: 500;
-            padding: 3px 10px;
+            padding: 3px 9px;
             border-radius: 12px;
             transition: all 0.2s ease;
+            white-space: nowrap;
         }
 
         .status-dot {
@@ -519,17 +538,267 @@ export class PromptCheckerPanel {
             animation: pulseClean 1.2s cubic-bezier(0.16, 1, 0.3, 1);
         }
 
-        .btn:disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
+        /* ── Shortcut Workflow Banner (Alt+W vs Alt+Q) ─────────────── */
+        .shortcut-banner {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+
+        .shortcut-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 7px;
+            padding: 8px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            transition: all 0.15s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .shortcut-card:hover {
+            border-color: var(--border-hover);
+            background: var(--card-hover);
+        }
+
+        .shortcut-card.mode-alt-w {
+            border-left: 3px solid var(--accent-instant);
+        }
+
+        .shortcut-card.mode-alt-q {
+            border-left: 3px solid var(--accent-review);
+        }
+
+        .shortcut-card.active {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .shortcut-card-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 6px;
+        }
+
+        .shortcut-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11.5px;
+            font-weight: 600;
+            color: var(--fg);
+        }
+
+        .shortcut-tag {
+            font-size: 10px;
+            padding: 1px 6px;
+            border-radius: 10px;
+            font-weight: 600;
+            letter-spacing: 0.2px;
+            text-transform: uppercase;
+        }
+
+        .tag-instant {
+            background: var(--accent-instant-bg);
+            border: 1px solid var(--accent-instant-border);
+            color: var(--accent-instant);
+        }
+
+        .tag-active {
+            background: var(--accent-review-bg);
+            border: 1px solid var(--accent-review-border);
+            color: var(--accent-review);
+        }
+
+        .shortcut-desc {
+            font-size: 11px;
+            color: var(--muted);
+            line-height: 1.35;
+        }
+
+        /* ── Editor Container ────────────────────────────────────── */
+        .editor-container {
+            position: relative;
+            flex: 1;
+            min-height: 160px;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.16);
+            overflow: hidden;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .editor-container:focus-within {
+            border-color: var(--focus-border);
+            box-shadow: 0 0 0 1px var(--focus-border), 0 2px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        .editor-highlights,
+        textarea#promptInput {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 14px 16px;
+            box-sizing: border-box;
+            font-family: var(--vscode-editor-font-family, Menlo, Monaco, Consolas, 'Courier New', monospace);
+            font-size: 13.5px;
+            line-height: 1.65;
+            letter-spacing: -0.01em;
+            white-space: pre-wrap;
+            word-break: break-word;
+            overflow-wrap: break-word;
+            tab-size: 4;
+        }
+
+        .editor-highlights {
             pointer-events: none;
+            overflow-y: hidden;
+            overflow-x: hidden;
+            z-index: 1;
+            color: transparent;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* 🔴 Google Speller Red Wavy Squiggly Underline */
+        .editor-highlights mark.misspelled {
+            color: transparent;
+            background-color: transparent;
+            text-decoration: underline wavy var(--typo-red) 1.5px;
+            -webkit-text-decoration: underline wavy var(--typo-red) 1.5px;
+            text-decoration-color: var(--typo-red);
+            text-underline-offset: 3.5px;
+            border-radius: 2px;
+            cursor: pointer;
+            transition: background-color 0.12s ease;
+        }
+
+        .editor-highlights mark.misspelled.active-hover {
+            background-color: var(--typo-bg-hover);
+        }
+
+        textarea#promptInput {
+            z-index: 2;
+            background: transparent;
+            color: var(--fg);
+            border: none;
+            outline: none;
+            resize: none;
+            overflow-y: auto;
+            caret-color: var(--fg);
+            user-select: text;
+        }
+
+        textarea#promptInput::placeholder {
+            color: var(--muted);
+            opacity: 0.45;
+        }
+
+        /* ── Empty State ─────────────────────────────────────────── */
+        .empty-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            z-index: 5;
+            pointer-events: none;
+            padding: 24px;
+            text-align: center;
+            background: var(--card-bg);
+            transition: opacity 0.15s ease;
+        }
+
+        .empty-overlay.hidden {
+            display: none !important;
+        }
+
+        .empty-icon-wrap {
+            color: var(--accent-review);
+            opacity: 0.9;
+        }
+
+        .empty-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--fg);
+        }
+
+        .empty-subtitle {
+            font-size: 11.5px;
+            color: var(--muted);
+            max-width: 380px;
+            line-height: 1.4;
+        }
+
+        .empty-shortcuts-box {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            background: var(--secondary-bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 10px 14px;
+            width: 100%;
+            max-width: 440px;
+            text-align: left;
+        }
+
+        .empty-shortcut-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 11.5px;
+        }
+
+        .empty-shortcut-text {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.3;
+        }
+
+        .empty-shortcut-text strong {
+            color: var(--fg);
+            font-weight: 600;
+        }
+
+        .empty-shortcut-text span {
+            color: var(--muted);
+            font-size: 10.5px;
+        }
+
+        .empty-actions {
+            margin-top: 4px;
+        }
+
+        .empty-paste-btn {
+            pointer-events: auto;
+            background: var(--secondary-bg);
+            border: 1px solid var(--border);
+        }
+
+        .empty-paste-btn:hover {
+            background: var(--secondary-hover);
         }
 
         /* ── Diff Comparison View ─────────────────────────────────── */
         .diff-container {
             position: relative;
             flex: 1;
-            min-height: 180px;
+            min-height: 160px;
             background: var(--card-bg);
             border: 1px solid var(--border);
             border-radius: 8px;
@@ -550,7 +819,7 @@ export class PromptCheckerPanel {
         }
 
         .diff-summary-badge {
-            font-size: 11.5px;
+            font-size: 12px;
             font-weight: 600;
             color: var(--clean-green);
             display: inline-flex;
@@ -631,161 +900,20 @@ export class PromptCheckerPanel {
             padding: 40px 20px;
         }
 
-        /* ── Empty State Overlay ─────────────────────────────────── */
-        .empty-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            z-index: 5;
-            pointer-events: none;
-            opacity: 0.9;
-            transition: opacity 0.15s ease;
-        }
-
-        .empty-overlay.hidden {
-            display: none !important;
-        }
-
-        .empty-sparkle {
-            font-size: 26px;
-        }
-
-        .empty-text {
-            font-size: 13.5px;
-            font-weight: 600;
-            color: var(--fg);
-        }
-
-        .empty-hint {
-            font-size: 11.5px;
-            color: var(--muted);
-            margin-bottom: 4px;
-        }
-
-        .empty-paste-btn {
-            pointer-events: auto;
-            background: var(--secondary-bg);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-        }
-
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: var(--vscode-scrollbarSlider-background, rgba(255, 255, 255, 0.15));
-            border-radius: 4px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: var(--vscode-scrollbarSlider-hoverBackground, rgba(255, 255, 255, 0.25));
-        }
-
-        /* ── Interactive Google Speller Editor Container ─────────── */
-        .editor-container {
-            position: relative;
-            flex: 1;
-            min-height: 180px;
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.16);
-            overflow: hidden;
-            transition: border-color 0.15s ease, box-shadow 0.15s ease;
-        }
-
-        .editor-container:focus-within {
-            border-color: var(--focus-border);
-            box-shadow: 0 0 0 1px var(--focus-border), 0 2px 6px rgba(0, 0, 0, 0.2);
-        }
-
-        .editor-highlights,
-        textarea#promptInput {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            margin: 0;
-            padding: 16px 18px;
-            box-sizing: border-box;
-            font-family: var(--vscode-editor-font-family, Menlo, Monaco, Consolas, 'Courier New', monospace);
-            font-size: 13.5px;
-            line-height: 1.65;
-            letter-spacing: -0.01em;
-            white-space: pre-wrap;
-            word-break: break-word;
-            overflow-wrap: break-word;
-            tab-size: 4;
-        }
-
-        .editor-highlights {
-            pointer-events: none;
-            overflow-y: hidden;
-            overflow-x: hidden;
-            z-index: 1;
-            color: transparent;
-            user-select: none;
-            -webkit-user-select: none;
-        }
-
-        /* 🔴 Google Speller Red Wavy Squiggly Underline */
-        .editor-highlights mark.misspelled {
-            color: transparent;
-            background-color: transparent;
-            text-decoration: underline wavy var(--typo-red) 1.5px;
-            -webkit-text-decoration: underline wavy var(--typo-red) 1.5px;
-            text-decoration-color: var(--typo-red);
-            text-underline-offset: 3.5px;
-            border-radius: 2px;
-            cursor: pointer;
-            transition: background-color 0.12s ease;
-        }
-
-        .editor-highlights mark.misspelled.active-hover {
-            background-color: var(--typo-bg-hover);
-        }
-
-        textarea#promptInput {
-            z-index: 2;
-            background: transparent;
-            color: var(--fg);
-            border: none;
-            outline: none;
-            resize: none;
-            overflow-y: auto;
-            caret-color: var(--fg);
-            user-select: text;
-        }
-
-        textarea#promptInput::placeholder {
-            color: var(--muted);
-            opacity: 0.5;
-        }
-
         /* ── Action Buttons ──────────────────────────────────────── */
         .actions-bar {
             display: flex;
             align-items: center;
             gap: 8px;
-            flex-wrap: wrap;
             flex-shrink: 0;
-            padding-top: 2px;
+            flex-wrap: wrap;
         }
 
         .btn {
             display: inline-flex;
             align-items: center;
-            gap: 8px;
-            padding: 7px 13px;
+            gap: 7px;
+            padding: 6px 12px;
             border-radius: 6px;
             border: 1px solid transparent;
             font-family: inherit;
@@ -800,14 +928,23 @@ export class PromptCheckerPanel {
             transform: scale(0.98);
         }
 
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
         .btn-primary {
             background: var(--primary-bg);
             color: var(--primary-fg);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 1px 3px rgba(0, 0, 0, 0.2);
+            font-weight: 600;
         }
 
         .btn-primary:hover {
             background: var(--primary-hover);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 2px 6px rgba(0, 0, 0, 0.25);
         }
 
         .btn-secondary {
@@ -821,44 +958,18 @@ export class PromptCheckerPanel {
             border-color: var(--border-hover);
         }
 
-        .btn-ai {
-            background: linear-gradient(135deg, rgba(142, 68, 173, 0.22), rgba(41, 128, 185, 0.22));
-            border: 1px solid rgba(155, 89, 182, 0.45);
-            color: #e0b0ff;
-            font-weight: 600;
-        }
-
-        .btn-ai:hover {
-            background: linear-gradient(135deg, rgba(142, 68, 173, 0.42), rgba(41, 128, 185, 0.42));
-            border-color: rgba(187, 143, 206, 0.7);
-            color: #ffffff;
-            box-shadow: 0 0 10px rgba(155, 89, 182, 0.35);
-        }
-
-        .btn-ai.loading {
-            opacity: 0.65;
-            pointer-events: none;
-        }
-
-        .btn-ai-hero {
-            background: linear-gradient(135deg, #1b5e9b, #6b21a8);
-            border: 1px solid rgba(168, 85, 247, 0.45);
-            color: #ffffff;
-            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 2px 6px rgba(0, 0, 0, 0.25);
-            font-weight: 600;
-        }
-
-        .btn-ai-hero:hover {
-            background: linear-gradient(135deg, #2563eb, #7c3aed);
-            border-color: rgba(192, 132, 252, 0.65);
-            box-shadow: 0 0 12px rgba(168, 85, 247, 0.45);
+        .actions-right {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-left: auto;
         }
 
         .btn-ghost {
             background: transparent;
             color: var(--muted);
             border: 1px solid transparent;
-            margin-left: auto;
+            padding: 6px 9px;
         }
 
         .btn-ghost:hover {
@@ -874,18 +985,26 @@ export class PromptCheckerPanel {
             font-weight: 500;
             padding: 1px 5px;
             border-radius: 4px;
-            background: rgba(255, 255, 255, 0.12);
+            background: rgba(255, 255, 255, 0.08);
             border: 1px solid rgba(255, 255, 255, 0.12);
-            opacity: 0.85;
+            opacity: 0.9;
             letter-spacing: 0.2px;
         }
 
-        .btn-secondary .kbd {
-            background: rgba(255, 255, 255, 0.07);
-            border-color: rgba(255, 255, 255, 0.1);
+        .kbd-accent {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: rgba(255, 255, 255, 0.18);
+            font-weight: 600;
+            color: var(--fg);
         }
 
-        /* ── Google Speller Floating Context Menu ─────────────────── */
+        .kbd-light {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.25);
+            color: #ffffff;
+        }
+
+        /* ── Google Speller Context Menu ─────────────────────────── */
         .speller-context-menu {
             position: fixed;
             z-index: 10000;
@@ -894,7 +1013,7 @@ export class PromptCheckerPanel {
             background: var(--menu-bg);
             color: var(--menu-fg);
             border: 1px solid var(--menu-border);
-            border-radius: 10px;
+            border-radius: 8px;
             box-shadow: 0 14px 36px rgba(0, 0, 0, 0.45), 0 2px 8px rgba(0, 0, 0, 0.2);
             backdrop-filter: blur(20px) saturate(180%);
             -webkit-backdrop-filter: blur(20px) saturate(180%);
@@ -959,7 +1078,7 @@ export class PromptCheckerPanel {
             justify-content: space-between;
             width: 100%;
             padding: 6px 9px;
-            border-radius: 6px;
+            border-radius: 5px;
             background: transparent;
             color: inherit;
             border: none;
@@ -1025,6 +1144,7 @@ export class PromptCheckerPanel {
 
         .action-icon {
             opacity: 0.7;
+            flex-shrink: 0;
         }
 
         .no-suggestions-text {
@@ -1034,7 +1154,7 @@ export class PromptCheckerPanel {
             font-size: 11.5px;
         }
 
-        /* ── Footer Tips & Toast ─────────────────────────────────── */
+        /* ── Footer Tips ─────────────────────────────────────────── */
         .footer-tips {
             font-size: 11px;
             color: var(--muted);
@@ -1042,7 +1162,17 @@ export class PromptCheckerPanel {
             justify-content: space-between;
             align-items: center;
             flex-shrink: 0;
-            padding: 2px 2px 0 2px;
+            padding-top: 2px;
+        }
+
+        .footer-left {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .footer-dot {
+            opacity: 0.4;
         }
 
         .tip-item {
@@ -1061,6 +1191,7 @@ export class PromptCheckerPanel {
             color: var(--fg);
         }
 
+        /* ── Toast ───────────────────────────────────────────────── */
         .toast {
             position: fixed;
             bottom: 24px;
@@ -1088,21 +1219,46 @@ export class PromptCheckerPanel {
             opacity: 1;
             transform: translateX(-50%) translateY(0);
         }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--vscode-scrollbarSlider-background, rgba(255, 255, 255, 0.15));
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--vscode-scrollbarSlider-hoverBackground, rgba(255, 255, 255, 0.25));
+        }
     </style>
 </head>
 <body>
+    <!-- ── Header ───────────────────────────────────────────── -->
     <header class="header">
         <div class="brand">
             <svg class="brand-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M12 20h9"/>
                 <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
             </svg>
-            <span>Prompt Spell Checker</span>
+            <span>Prompt Spell Assistant</span>
         </div>
-        <div class="view-switch">
-            <button id="tabEditor" class="tab-btn active" type="button" title="Interactive Editor View">Editor</button>
-            <button id="tabDiff" class="tab-btn" type="button" title="Visual Diff & Change Comparison">Diff Preview</button>
+
+        <div class="header-center">
+            <div class="view-switch">
+                <button id="tabEditor" class="tab-btn active" type="button" title="Interactive Editor View">
+                    <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                    <span>Inspector</span>
+                </button>
+                <button id="tabDiff" class="tab-btn" type="button" title="Visual Diff & Change Comparison">
+                    <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+                    <span>Diff View</span>
+                </button>
+            </div>
         </div>
+
         <div class="header-right">
             <span id="statsPill" class="stats-pill">0 words · 0 chars</span>
             <div id="statusBadge" class="status-pill status-clean">
@@ -1112,37 +1268,91 @@ export class PromptCheckerPanel {
         </div>
     </header>
 
+    <!-- ── Shortcut Workflow Banner (Alt+W vs Alt+Q) ─────────── -->
+    <section class="shortcut-banner">
+        <div class="shortcut-card mode-alt-w" id="cardAltW" title="Click to see what Alt+W does or try quick fix">
+            <div class="shortcut-card-top">
+                <div class="shortcut-badge">
+                    <kbd class="kbd kbd-accent">Alt+W</kbd>
+                    <span>Instant Auto-Fix</span>
+                </div>
+                <span class="shortcut-tag tag-instant">In-Place • 0 Clicks</span>
+            </div>
+            <div class="shortcut-desc">
+                Replaces typos &amp; phrases directly where you type (AI Chat input or editor) without opening any window.
+            </div>
+        </div>
+
+        <div class="shortcut-card mode-alt-q active" id="cardAltQ" title="Alt+Q opened this interactive panel">
+            <div class="shortcut-card-top">
+                <div class="shortcut-badge">
+                    <kbd class="kbd kbd-accent">Alt+Q</kbd>
+                    <span>Interactive Review</span>
+                </div>
+                <span class="shortcut-tag tag-active">Current Panel</span>
+            </div>
+            <div class="shortcut-desc">
+                Review red wavy squigglies, click words for smart suggestions, view diffs &amp; customize dictionary.
+            </div>
+        </div>
+    </section>
+
     <!-- 🎯 Interactive Google Speller Editor -->
     <div class="editor-container" id="editorContainer">
         <div class="editor-highlights" id="editorHighlights"></div>
         <textarea
             id="promptInput"
-            placeholder="Type or paste your prompt here... (e.g. I dont knw what hapened here)"
+            placeholder="Type or paste your prompt here to check spelling & phrases..."
             spellcheck="false"
             autocomplete="off"
             autocorrect="off"
             autocapitalize="off"
         ></textarea>
         <div id="emptyOverlay" class="empty-overlay">
-            <div class="empty-sparkle">✨</div>
-            <div class="empty-text">Prompt Spell Checker Ready</div>
-            <div class="empty-hint">Type or paste prompt to detect spelling, grammar, and contractions</div>
-            <button id="btnEmptyPaste" class="btn btn-secondary empty-paste-btn" type="button">
-                <span>📋 Paste from Clipboard</span>
-            </button>
+            <div class="empty-icon-wrap">
+                <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                </svg>
+            </div>
+            <div class="empty-title">Ready to Proofread Prompt</div>
+            <div class="empty-subtitle">Type directly below or choose how you like to work:</div>
+
+            <div class="empty-shortcuts-box">
+                <div class="empty-shortcut-row">
+                    <kbd class="kbd kbd-accent">Alt + W</kbd>
+                    <div class="empty-shortcut-text">
+                        <strong>Instant Auto-Fix in Chat Box</strong>
+                        <span>Fixes &amp; pastes prompt in-place with 0 clicks (30ms speed)</span>
+                    </div>
+                </div>
+                <div class="empty-shortcut-row">
+                    <kbd class="kbd kbd-accent">Alt + Q</kbd>
+                    <div class="empty-shortcut-text">
+                        <strong>Interactive Inspector Panel</strong>
+                        <span>Review red wavy squigglies, choose suggestions &amp; view diffs</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="empty-actions">
+                <button id="btnEmptyPaste" class="btn btn-secondary empty-paste-btn btn-sm" type="button">
+                    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                    <span>Paste from Clipboard</span>
+                </button>
+            </div>
         </div>
     </div>
 
     <!-- 🔍 Diff Comparison View -->
     <div id="diffContainer" class="diff-container" style="display: none;">
         <div class="diff-header-bar">
-            <span id="diffSummaryBadge" class="diff-summary-badge">✨ 0 AI improvements found</span>
+            <span id="diffSummaryBadge" class="diff-summary-badge">✨ 0 improvements found</span>
             <div class="diff-actions">
-                <button id="btnDiffApply" class="btn btn-primary btn-sm" type="button" title="Apply all AI fixes to editor">
-                    <span>✨ Apply AI Fixes</span>
+                <button id="btnDiffApply" class="btn btn-primary btn-sm" type="button" title="Apply all fixes to editor">
+                    <span>Apply Fixes</span>
                 </button>
                 <button id="btnDiffCopy" class="btn btn-secondary btn-sm" type="button" title="Copy fixed text">
-                    <span>📋 Copy Fixed Prompt</span>
+                    <span>Copy Fixed Prompt</span>
                 </button>
             </div>
         </div>
@@ -1151,32 +1361,69 @@ export class PromptCheckerPanel {
 
     <!-- ⚡ Action Buttons -->
     <div class="actions-bar">
-        <button id="btnFixAndPaste" class="btn btn-primary btn-ai-hero" title="AI Fix all typos and paste into chat (Ctrl+Shift+Enter)">
-            <span>✨ Fix & Paste to Chat</span>
-            <kbd class="kbd">Ctrl+Shift+↵</kbd>
+        <!-- Primary Action -->
+        <button id="btnFixAndPaste" class="btn btn-primary" title="Fix all typos and paste into AI chat (Ctrl+Shift+Enter)">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+            </svg>
+            <span>Fix &amp; Paste to Chat</span>
+            <kbd class="kbd kbd-light">Ctrl+Shift+↵</kbd>
         </button>
+
+        <!-- Secondary Action: Auto-Fix inside box -->
+        <button id="btnAiAutoFix" class="btn btn-secondary" title="Auto-fix all typos inside this editor">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 3v3m6.364 1.636l-2.121 2.121M21 12h-3m1.636 6.364l-2.121-2.121M12 21v-3m-6.364 1.636l2.121-2.121M3 12h3m-1.636-6.364l2.121 2.121"></path>
+            </svg>
+            <span>Auto-Fix All</span>
+        </button>
+
+        <!-- Secondary Action: Copy Clean -->
         <button id="btnCopy" class="btn btn-secondary" title="Copy clean prompt (Ctrl+Enter)">
-            <span>📋 Copy Clean</span>
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+            <span>Copy Clean</span>
             <kbd class="kbd">Ctrl+↵</kbd>
         </button>
-        <button id="btnAiAutoFix" class="btn btn-ai" title="AI Fix and predict prompt (vscode.lm / LanguageTool / LLM)">
-            <span>✨ Auto-Fix All</span>
-        </button>
-        <button id="btnUndo" class="btn btn-secondary" title="Undo change (Ctrl+Z)" disabled>
-            <span>↺ Undo</span>
-        </button>
+
+        <!-- Editor Replace (when editor target active) -->
         <button id="btnReplaceEditor" class="btn btn-secondary" style="display:none;" title="Replace in code editor">
             <span>Replace in Editor</span>
         </button>
-        <button id="btnClear" class="btn btn-ghost" title="Clear text">
-            <span>Clear</span>
-        </button>
+
+        <!-- Right utility actions -->
+        <div class="actions-right">
+            <button id="btnUndo" class="btn btn-ghost" title="Undo change (Ctrl+Z)" disabled>
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="1 4 1 10 7 10"></polyline>
+                    <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+                </svg>
+                <span>Undo</span>
+            </button>
+            <button id="btnClear" class="btn btn-ghost" title="Clear text">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+                <span>Clear</span>
+            </button>
+        </div>
     </div>
 
     <!-- 💡 Footer Tips -->
     <footer class="footer-tips">
-        <span class="tip-item"><kbd class="tip-kbd">Right-click</kbd> any underlined word to replace</span>
-        <span class="tip-item"><kbd class="tip-kbd">Ctrl+Shift+Enter</kbd> to paste to chat</span>
+        <div class="footer-left">
+            <span class="tip-item"><kbd class="tip-kbd">Alt+W</kbd> Instant fix in chat</span>
+            <span class="footer-dot">•</span>
+            <span class="tip-item"><kbd class="tip-kbd">Alt+Q</kbd> Interactive inspector</span>
+            <span class="footer-dot">•</span>
+            <span class="tip-item"><kbd class="tip-kbd">Ctrl+Shift+Enter</kbd> Fix &amp; paste</span>
+        </div>
+        <div>
+            <span>Click or right-click any red underline to choose suggestions</span>
+        </div>
     </footer>
 
     <!-- 🌟 Google Speller Floating Context Menu -->
@@ -1201,7 +1448,7 @@ export class PromptCheckerPanel {
                 <circle cx="12" cy="12" r="10"></circle>
                 <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
             </svg>
-            <span>Ignore word</span>
+            <span>Ignore for this session</span>
         </button>
     </div>
 
@@ -1226,6 +1473,10 @@ export class PromptCheckerPanel {
         const toast = document.getElementById('toast');
         const toastIcon = document.getElementById('toastIcon');
         const toastText = document.getElementById('toastText');
+
+        // Shortcut Banner Cards
+        const cardAltW = document.getElementById('cardAltW');
+        const cardAltQ = document.getElementById('cardAltQ');
 
         // View Tabs and Diff elements
         const tabEditor = document.getElementById('tabEditor');
@@ -1306,12 +1557,12 @@ export class PromptCheckerPanel {
             toastText.textContent = text;
             toastIcon.textContent = icon;
             toast.classList.add('show');
-            setTimeout(() => toast.classList.remove('show'), 1600);
+            setTimeout(() => toast.classList.remove('show'), 1700);
         }
 
         function updateStats() {
             const val = textarea.value;
-            const words = val.trim() ? val.trim().split(/\s+/).length : 0;
+            const words = val.trim() ? val.trim().split(/\\s+/).length : 0;
             const chars = val.length;
             const tokens = Math.ceil(words * 1.33);
             statsPill.textContent = (words > 0 ? '~' + tokens + ' tokens · ' : '') + words + (words === 1 ? ' word' : ' words') + ' · ' + chars + ' chars';
@@ -1381,7 +1632,6 @@ export class PromptCheckerPanel {
 
             html += escapeHtml(text.slice(lastIndex));
 
-            // Extra newline if text ends with newline for scroll parity
             if (text.endsWith('\\n')) {
                 html += '\\n';
             }
@@ -1402,7 +1652,6 @@ export class PromptCheckerPanel {
 
         // ── Find Misspelling at Point or Offset ───────────────────
         function findMisspelling(clientX, clientY, textOffset) {
-            // 1. Precise DOM bounding box check
             const marks = editorHighlights.querySelectorAll('mark.misspelled');
             for (const mark of marks) {
                 const rect = mark.getBoundingClientRect();
@@ -1419,7 +1668,6 @@ export class PromptCheckerPanel {
                 }
             }
 
-            // 2. Cursor index offset fallback
             if (typeof textOffset === 'number' && textOffset >= 0) {
                 for (const m of currentMisspellings) {
                     if (ignoredWords.has(m.word.toLowerCase())) continue;
@@ -1441,7 +1689,6 @@ export class PromptCheckerPanel {
             menuTypoWord.textContent = misspelling.word;
             menuDictWord.textContent = misspelling.word;
 
-            // Render suggestions
             menuSuggestionsList.innerHTML = '';
             if (misspelling.suggestions && misspelling.suggestions.length > 0) {
                 misspelling.suggestions.slice(0, 5).forEach((sugg, idx) => {
@@ -1468,7 +1715,6 @@ export class PromptCheckerPanel {
 
             spellerContextMenu.style.display = 'flex';
 
-            // Calculate position
             const menuWidth = 230;
             const menuHeight = spellerContextMenu.offsetHeight || 190;
 
@@ -1483,7 +1729,6 @@ export class PromptCheckerPanel {
                 }
             }
 
-            // Keep within viewport bounds
             if (posX + menuWidth > window.innerWidth - 10) {
                 posX = window.innerWidth - menuWidth - 10;
             }
@@ -1564,7 +1809,6 @@ export class PromptCheckerPanel {
             const newText = before + replacement + after;
             textarea.value = newText;
 
-            // Set cursor right after the replacement word
             const newCursor = misspelling.start + replacement.length;
             textarea.setSelectionRange(newCursor, newCursor);
             textarea.focus();
@@ -1623,6 +1867,24 @@ export class PromptCheckerPanel {
             }
         });
 
+        // ── Card Alt+W & Alt+Q Interactions ───────────────────────
+        if (cardAltW) {
+            cardAltW.addEventListener('click', () => {
+                if (textarea.value.trim().length > 0) {
+                    btnFixAndPaste.click();
+                } else {
+                    showToast('Alt+W runs instant fix directly in your chat/editor!', '⚡');
+                }
+            });
+        }
+
+        if (cardAltQ) {
+            cardAltQ.addEventListener('click', () => {
+                textarea.focus();
+                showToast('Alt+Q opens this live inspector panel', '🔍');
+            });
+        }
+
         // ── Main Action Bar Handlers ──────────────────────────────
         btnFixAndPaste.addEventListener('click', () => {
             let text = textarea.value;
@@ -1646,7 +1908,7 @@ export class PromptCheckerPanel {
                 text: textarea.value,
                 count: count
             });
-            showToast('Pasting into chat...', '⚡');
+            showToast('Pasting clean prompt into chat...', '⚡');
         });
 
         btnCopy.addEventListener('click', () => {
@@ -1654,7 +1916,7 @@ export class PromptCheckerPanel {
             const origSpan = btnCopy.querySelector('span');
             if (origSpan) {
                 const prev = origSpan.textContent;
-                origSpan.textContent = '✓ Copied!';
+                origSpan.textContent = 'Copied!';
                 btnCopy.style.borderColor = 'var(--clean-green)';
                 btnCopy.style.color = 'var(--clean-green)';
                 setTimeout(() => {
@@ -1674,16 +1936,21 @@ export class PromptCheckerPanel {
         if (btnAiAutoFix) {
             btnAiAutoFix.addEventListener('click', () => {
                 if (!textarea.value || !textarea.value.trim()) {
-                    showToast('Enter prompt to fix with AI', '⚠️');
+                    showToast('Enter prompt to auto-fix', '⚠️');
                     return;
                 }
                 pushHistory();
-                btnAiAutoFix.classList.add('loading');
-                btnAiAutoFix.innerHTML = '<span>✨ AI Fixing...</span>';
+                btnAiAutoFix.disabled = true;
+                const origHtml = btnAiAutoFix.innerHTML;
+                btnAiAutoFix.innerHTML = '<span>Fixing...</span>';
                 vscode.postMessage({
                     command: 'applyAiAutoFix',
                     text: textarea.value
                 });
+                setTimeout(() => {
+                    btnAiAutoFix.disabled = false;
+                    btnAiAutoFix.innerHTML = origHtml;
+                }, 1200);
             });
         }
 
@@ -1761,10 +2028,6 @@ export class PromptCheckerPanel {
             switch (msg.command) {
                 case 'loadText':
                     textarea.value = msg.text || '';
-                    if (btnAiAutoFix) {
-                        btnAiAutoFix.classList.remove('loading');
-                        btnAiAutoFix.innerHTML = '<span>✨ Auto-Fix All</span>';
-                    }
                     if (msg.hasEditorTarget) {
                         btnReplaceEditor.style.display = 'inline-flex';
                     } else {
@@ -1785,10 +2048,6 @@ export class PromptCheckerPanel {
                     renderDiffView(msg);
                     break;
                 case 'aiProofreadResult':
-                    if (btnAiAutoFix) {
-                        btnAiAutoFix.classList.remove('loading');
-                        btnAiAutoFix.innerHTML = '<span>✨ Auto-Fix All</span>';
-                    }
                     lastDiffResult = {
                         originalText: msg.originalText,
                         fixedText: msg.fixedText,
@@ -1799,7 +2058,7 @@ export class PromptCheckerPanel {
                     };
                     if (tabDiff) tabDiff.click();
                     renderDiffView(lastDiffResult);
-                    showToast('AI Proofread (' + (msg.providerUsed || 'AI') + (msg.durationMs ? ' · ' + msg.durationMs + 'ms' : '') + ')', '✨');
+                    showToast('Proofread ready (' + (msg.providerUsed || 'Local') + (msg.durationMs ? ' · ' + msg.durationMs + 'ms' : '') + ')', '✓');
                     break;
             }
         });
@@ -1817,27 +2076,25 @@ export class PromptCheckerPanel {
                 if (btnDiffApply) btnDiffApply.disabled = true;
                 diffContent.innerHTML =
                     '<div class="diff-clean-card">' +
-                        '<div style="font-size:32px;">✨</div>' +
+                        '<div style="font-size:28px;">✓</div>' +
                         '<div style="font-weight:600;font-size:14px;color:var(--clean-green);">Prompt is 100% Clean!</div>' +
                         '<div style="font-size:12px;color:var(--muted);max-width:320px;">No typos, phrase errors, contractions, or developer slip-ups found in this prompt.</div>' +
                     '</div>';
                 return;
             }
 
-            diffSummaryBadge.textContent = '⚡ ' + fixesCount + (fixesCount === 1 ? ' improvement found' : ' improvements found');
+            diffSummaryBadge.textContent = fixesCount + (fixesCount === 1 ? ' improvement found' : ' improvements found');
             diffSummaryBadge.style.color = 'var(--clean-green)';
             if (btnDiffApply) btnDiffApply.disabled = false;
 
             let html = '';
 
-            // Render provider badge if AI proofread
             if (msg.providerUsed) {
                 html += '<div style="margin-bottom:10px;display:flex;align-items:center;gap:6px;">' +
-                    '<span style="font-size:10.5px;padding:2px 8px;border-radius:10px;background:rgba(155,89,182,0.18);color:#dfb2f4;border:1px solid rgba(155,89,182,0.4);font-weight:600;">✨ ' + escapeHtml(msg.providerUsed) + (msg.durationMs ? ' · ' + msg.durationMs + 'ms' : '') + '</span>' +
+                    '<span style="font-size:10.5px;padding:2px 8px;border-radius:10px;background:rgba(56,189,248,0.1);color:#38bdf8;border:1px solid rgba(56,189,248,0.3);font-weight:600;">Engine: ' + escapeHtml(msg.providerUsed) + (msg.durationMs ? ' · ' + msg.durationMs + 'ms' : '') + '</span>' +
                 '</div>';
             }
 
-            // Render chips of what was corrected
             if (msg.wordChanges && msg.wordChanges.length > 0) {
                 html += '<div class="diff-chips-panel">';
                 html += '<span style="font-size:11px;color:var(--muted);margin-right:4px;">Corrections:</span>';
@@ -1848,7 +2105,6 @@ export class PromptCheckerPanel {
                 html += '</div>';
             }
 
-            // Render full preview text with changes highlighted
             let preview = escapeHtml(fixed);
             if (msg.wordChanges) {
                 msg.wordChanges.forEach(c => {
@@ -1858,7 +2114,7 @@ export class PromptCheckerPanel {
                 });
             }
 
-            html += '<div style="font-size:11px;font-weight:600;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;">Enhanced Clean Prompt Preview</div>';
+            html += '<div style="font-size:11px;font-weight:600;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;">Clean Prompt Preview</div>';
             html += '<div style="background:var(--secondary-bg);padding:14px;border-radius:6px;border:1px solid var(--border);line-height:1.7;">' + preview + '</div>';
 
             diffContent.innerHTML = html;
@@ -1871,7 +2127,7 @@ export class PromptCheckerPanel {
             if (activeErrors.length === 0) {
                 statusBadge.className = 'status-pill status-clean';
                 const hasText = textarea.value.trim().length > 0;
-                statusText.textContent = hasText ? '✨ 100% Clean' : 'Clean';
+                statusText.textContent = hasText ? '100% Clean' : 'Clean';
                 if (hasText) {
                     statusBadge.classList.add('pulse-clean');
                 }
