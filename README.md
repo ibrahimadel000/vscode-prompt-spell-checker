@@ -1,83 +1,80 @@
 # AI Chat Spell Assistant 🧩
 
-<p align="center">
-  <img src="assets/icon.png" width="128" height="128" alt="AI Chat Spell Assistant Icon" />
-</p>
-
-<p align="center">
-  <strong>The Google-grade spell and prompt corrector for AI coding assistant chats in VS Code.</strong><br>
-  <em>Never let a typo confuse Copilot, Codex, Antigravity, ChatGPT, or Claude again.</em>
-</p>
-
-<p align="center">
-  <a href="https://marketplace.visualstudio.com/items?itemName=ibrahim-adel.ai-chat-spell-assistant"><img src="https://img.shields.io/badge/VS%20Code-v1.85+-blue.svg?style=flat-square&logo=visual-studio-code" alt="VS Code Compatibility"></a>
-  <a href="https://github.com/ibrahimadel000/vscode-prompt-spell-checker/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-green.svg?style=flat-square" alt="MIT License"></a>
-  <img src="https://img.shields.io/badge/Version-v0.4.7-purple.svg?style=flat-square" alt="Version 0.4.7">
-  <img src="https://img.shields.io/badge/Offline-100%25%20Private-success.svg?style=flat-square" alt="100% Private Offline">
-</p>
+**The intelligent prompt corrector for AI coding assistant chats in VS Code.**  
+*Fix typos, grammar, and contextual slips before they confuse Copilot, Claude, ChatGPT, or Antigravity.*
 
 ---
 
-## ⚡ The Problem & The Solution
+## ⚡ Quick Start: 2 Ways to Fix Prompts
 
-When typing prompts into AI chat inputs (Copilot, Codex, ChatGPT, Antigravity), **misspellings and accidental typos degrade LLM reasoning**. Worse, traditional spell checkers only work inside open code editor tabs—they **cannot interact with AI chat input boxes** and fail on contextual malapropisms (`plea tanned` vs `play tennis`).
+| Workflow | Shortcut | What It Does |
+| :--- | :---: | :--- |
+| **Instant Auto-Fix & Paste** | <kbd>Alt</kbd> + <kbd>W</kbd> | **Zero UI.** Automatically captures your prompt from the chat box, fixes all misspellings and grammar slips, and pastes back clean text. |
+| **Interactive Spell Inspector** | <kbd>Alt</kbd> + <kbd>Q</kbd> | Opens a side-by-side review panel with Google Docs-style squiggly underlines, suggestion chips, and one-click replacement. |
 
-**AI Chat Spell Assistant** brings desktop-grade, Google Speller-level intelligence directly to your prompts and editors:
-- **`Alt+W` Zero-UI Auto-Fix**: Press `Alt+W` anywhere—even directly inside AI Chat boxes—and your prompt is automatically captured, corrected with Google frequency scoring, and pasted back clean.
-- **`Alt+Q` Interactive Prompt Checker**: Open a side-by-side interactive panel featuring Google Docs-style red squiggly underlines, live right-click context menus, and one-click fixes.
-- **Contextual Collocations**: Catches real-word malapropisms that traditional spell checkers miss (`can't plea tanned` $\rightarrow$ `can't play tennis`, `peace of paper` $\rightarrow$ `piece of paper`).
-- **Phonetic Metaphone Matching**: Sound-alike mapping (`tannes` $\rightarrow$ `tennis`, `spller` $\rightarrow$ `speller`, `fone` $\rightarrow$ `phone`).
-- **Developer Code Shield**: Preserves `camelCase`, `snake_case`, URLs, markdown code fences, and dev terms (`async`, `await`, `json`, `oauth`, `regex`, etc.).
-
----
-
-## 🆚 Why AI Chat Spell Assistant?
-
-| Feature | Traditional Linters (Code Spell Checker, etc.) | AI Chat Spell Assistant 🧩 |
-| :--- | :---: | :---: |
-| **Works Inside AI Chat Boxes** | ❌ No | ✅ **Yes (`Alt+W` instant capture & paste)** |
-| **Contextual Collocations** (`can't plea tanned`) | ❌ Fails (both are "valid" words) | ✅ **Corrects to `can't play tennis`** |
-| **Phonetic Metaphone Indexing** | ⚠️ Weak / Partial | ✅ **Full-Dictionary Double Metaphone** |
-| **Google Web 1T Bayesian Frequency** | ❌ Flat dictionary | ✅ **Ranks common words highest** |
-| **Interactive Prompt Checker Webview** | ❌ None | ✅ **Live Red Squiggly Lines & 1-Click Fix** |
-| **Developer Code Immunity** | ⚠️ False positives | ✅ **Protects syntax, identifiers & dev keywords** |
-| **Privacy & Offline** | 🔒 Local | 🔒 **100% Local (Zero network requests)** |
+> [!TIP]
+> **Works directly inside AI Chat inputs!** Traditional linters only work inside code files. AI Chat Spell Assistant bridges the gap by letting you correct prompts directly inside GitHub Copilot Chat, Antigravity, and webview inputs with a single keystroke.
 
 ---
 
-## ⌨️ Keyboard Shortcuts
+## 🎯 Real-World Examples
 
-| Shortcut | Action | Description |
+| Typed Prompt (Before) | Corrected Output (<kbd>Alt</kbd> + <kbd>W</kbd>) | What Got Fixed |
 | :--- | :--- | :--- |
-| **`Alt+W`** | **Quick Fix & Paste** | Instant zero-UI fix. Auto-captures prompt from AI chat box or editor, corrects typos, and pastes back clean text. |
-| **`Alt+Q`** | **Prompt Checker / Quick Fix** | Opens the interactive Prompt Checker panel with highlighted text, or shows suggestion menu at cursor. |
-| **`Ctrl+Alt+S`** or<br>**`Shift+Alt+Q`** | **Open Prompt Checker** | Launches the interactive side-by-side prompt review panel. |
+| `i dant pley tannes infront of teh club` | `I don't play tennis in front of the club` | Contractions, phonetics, compound words |
+| `can u fix this fucntion resposne pls` | `Can you fix this function response please` | Dev typos (`fucntion`, `resposne`), prompt slang |
+| `their is a error in this peace of code` | `There is an error in this piece of code` | Homophones (`their` $\rightarrow$ `there`, `peace` $\rightarrow$ `piece`), article agreement |
+| `getUserById(userId) is retun undefined` | `getUserById(userId) is returning undefined` | Code identifier preserved; grammar corrected |
 
 ---
 
-## 🚀 How to Use
+## ✨ Key Features
 
-### 1. In AI Chat Boxes (Copilot, Codex, Antigravity, ChatGPT)
-1. Type your prompt into the chat box (e.g., `"i dant pley tannes infront of teh club"`).
-2. Press **`Alt+W`**.
-3. *Boom!* Your prompt is instantly replaced with `"i don't play tennis in front of the club"`.
+### 1. ⚡ Zero-UI In-Place Auto-Fix (<kbd>Alt</kbd> + <kbd>W</kbd>)
+Press <kbd>Alt</kbd> + <kbd>W</kbd> anywhere—including inside AI Chat boxes, markdown files, or commit inputs. The extension instantly captures your prompt line, applies Bayesian frequency scoring and phonetic correction, and pastes back clean text without opening any popup windows.
 
-### 2. In the Interactive Prompt Checker Webview
-1. Press **`Alt+Q`** (or `Shift+Alt+Q`).
-2. Type or review your prompt in the dedicated panel.
-3. Misspelled words are marked with Google-style red wavy underlines.
-4. Left-click or right-click any flagged word to select a suggestion, or click **Auto Fix All** to correct everything in one click.
-5. Click **Fix & Paste to Chat** (`Ctrl+Shift+Enter`) to close the panel and send the clean prompt straight to your AI assistant.
+### 2. 🔍 Interactive Prompt Checker (<kbd>Alt</kbd> + <kbd>Q</kbd>)
+Need to review complex prompts? Press <kbd>Alt</kbd> + <kbd>Q</kbd> (or <kbd>Shift</kbd> + <kbd>Alt</kbd> + <kbd>Q</kbd>) to launch the dedicated side panel:
+- **Live Squiggly Underlines**: Red wavy underlines highlight typos in real-time.
+- **Suggestion Chips**: Click any suggestion to instantly replace the misspelled word.
+- **Auto-Fix All**: Clean the entire prompt with one click.
+- **Fix & Paste to Chat** (<kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>Enter</kbd>): Sends the polished prompt straight back to your active chat panel.
 
-### 3. In Editor Documents
-- Real-time squiggly underlines appear as you type in Markdown, plain text, and git commit files.
-- Hover or press `Alt+Q` to accept suggestions directly.
+### 3. 🛡️ Developer Code Shield (Immunity System)
+Never worry about your code identifiers getting mangled:
+- ✅ Preserves `camelCase` and `snake_case` variable names (`fetchUserData`, `user_id_token`).
+- ✅ Preserves Markdown code blocks, inline code fences (`const x = 10`), and backticks.
+- ✅ Preserves URLs, endpoints, API routes (`/api/v1/auth`), and file paths (`src/components/App.tsx`).
+- ✅ Preserves developer terms (`async`, `await`, `jwt`, `oauth`, `regex`, `stdout`, `boolean`).
+
+### 4. 🧠 Contextual Collocation & Malapropism Detection
+Traditional spell checkers only check if a word exists in a dictionary. AI Chat Spell Assistant detects real-word slips where both words are valid English but contextually incorrect:
+- `peace of paper` $\rightarrow$ `piece of paper`
+- `can't plea tanned` $\rightarrow$ `can't play tennis`
+- `faster then before` $\rightarrow$ `faster than before`
+- `loose weight` $\rightarrow$ `lose weight`
+
+### 5. 🔒 100% Offline & Private
+- **Zero Cloud Calls by Default**: Core spell checking, Double Metaphone phonetics, and Google Web 1T frequency ranking run entirely in-memory on your local CPU.
+- **No Keystroke Tracking**: The OS-level capture only triggers on explicit user keystroke (<kbd>Alt</kbd> + <kbd>W</kbd> or <kbd>Alt</kbd> + <kbd>Q</kbd>).
+
+---
+
+## ⌨️ Keyboard Shortcuts Reference
+
+| Shortcut | Command | Action |
+| :--- | :--- | :--- |
+| <kbd>Alt</kbd> + <kbd>W</kbd> | `spellAssistant.quickFixAndCopy` | Auto-fixes prompt and pastes directly into active chat box or editor. |
+| <kbd>Alt</kbd> + <kbd>Q</kbd> | `spellAssistant.openPromptChecker` | Opens the Interactive Prompt Checker with current text loaded. |
+| <kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>S</kbd> | `spellAssistant.openPromptChecker` | Secondary shortcut for Interactive Prompt Checker. |
+| <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>Enter</kbd> | *Webview Action* | (Inside Webview) Auto-fixes prompt and pastes to chat panel. |
+| <kbd>Ctrl</kbd> + <kbd>Enter</kbd> | *Webview Action* | (Inside Webview) Copies clean prompt to clipboard. |
 
 ---
 
 ## ⚙️ Configuration
 
-Customize the extension in VS Code Settings (`Ctrl+,` $\rightarrow$ search `Spell Assistant`):
+Configure the extension via VS Code Settings (<kbd>Ctrl</kbd> + <kbd>,</kbd> $\rightarrow$ search `Spell Assistant`):
 
 ```json
 {
@@ -91,19 +88,32 @@ Customize the extension in VS Code Settings (`Ctrl+,` $\rightarrow$ search `Spel
   "spellAssistant.ignoreFilePaths": true,
   "spellAssistant.ignoreAllCaps": true,
   "spellAssistant.maxSuggestions": 5,
+  "spellAssistant.diagnosticSeverity": "error",
   "spellAssistant.extraKnownWords": ["myCustomService", "authProvider"],
   "spellAssistant.aiProofreader.enabled": true,
   "spellAssistant.aiProofreader.provider": "auto"
 }
 ```
 
+### Settings Breakdown
+
+| Setting | Default | Description |
+| :--- | :---: | :--- |
+| `spellAssistant.enabled` | `true` | Master toggle for spell checking. |
+| `spellAssistant.checkOnType` | `true` | Highlights typos in real-time as you type in supported documents. |
+| `spellAssistant.targetLanguages` | `["markdown", "plaintext", ...]` | Language modes eligible for real-time squiggly underlines. |
+| `spellAssistant.ignoreCamelCase` | `true` | Automatically skips `camelCase` and `snake_case` programming variables. |
+| `spellAssistant.ignoreCodeBlocks` | `true` | Automatically skips fenced (` ``` `) and inline (`` `code` ``) blocks. |
+| `spellAssistant.extraKnownWords` | `[]` | List of custom words or domain acronyms to treat as valid. |
+| `spellAssistant.aiProofreader.provider` | `"auto"` | Provider for Tier 2 proofreading: `"auto"`, `"vscode-lm"`, `"languagetool"`, or `"custom-llm"`. |
+
 ---
 
-## 🔒 Privacy & Security
+## 🤝 Supported Environments
 
-- **100% Local Execution**: All spell-checking, phonetic Metaphone matching, and Google frequency scoring are performed offline using an in-memory dictionary.
-- **Zero Cloud Calls**: No text, prompts, or telemetry are ever sent over the network.
-- **No Keystroke Logging**: The OS capture helper only runs when you explicitly invoke `Alt+W` or `Alt+Q`.
+- **AI Chat Assistants**: GitHub Copilot Chat, Antigravity Agent, Cursor Chat, ChatGPT & Claude Webviews.
+- **Editor Documents**: Markdown (`.md`), Plain Text (`.txt`), Git Commit messages (`git-commit`), SCM Input (`scminput`), Untitled scratch tabs.
+- **Operating Systems**: Windows 10/11, macOS, Linux.
 
 ---
 
