@@ -3,7 +3,7 @@
   "displayName": "AI Chat Spell Assistant",
   "description": "Smart spell-checker for AI coding assistant prompts. Select text or copy, review misspellings in an interactive box, and copy clean text directly into chat.",
   "version": "0.4.7",
-  "publisher": "ibrahimadel",
+  "publisher": "ibrahim-adel",
   "icon": "assets/icon.png",
   "license": "MIT",
   "repository": {
