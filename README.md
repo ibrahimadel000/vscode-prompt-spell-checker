@@ -11,7 +11,7 @@
 
 <p align="center">
   <a href="https://marketplace.visualstudio.com/items?itemName=ibrahimadel.ai-chat-spell-assistant"><img src="https://img.shields.io/badge/VS%20Code-v1.85+-blue.svg?style=flat-square&logo=visual-studio-code" alt="VS Code Compatibility"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-green.svg?style=flat-square" alt="MIT License"></a>
+  <a href="https://github.com/ibrahimadel000/vscode-prompt-spell-checker/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-green.svg?style=flat-square" alt="MIT License"></a>
   <img src="https://img.shields.io/badge/Version-v0.4.7-purple.svg?style=flat-square" alt="Version 0.4.7">
   <img src="https://img.shields.io/badge/Offline-100%25%20Private-success.svg?style=flat-square" alt="100% Private Offline">
 </p>
@@ -91,7 +91,9 @@ Customize the extension in VS Code Settings (`Ctrl+,` $\rightarrow$ search `Spel
   "spellAssistant.ignoreFilePaths": true,
   "spellAssistant.ignoreAllCaps": true,
   "spellAssistant.maxSuggestions": 5,
-  "spellAssistant.extraKnownWords": ["myCustomService", "authProvider"]
+  "spellAssistant.extraKnownWords": ["myCustomService", "authProvider"],
+  "spellAssistant.aiProofreader.enabled": true,
+  "spellAssistant.aiProofreader.provider": "auto"
 }
 ```
 

@@ -8,6 +8,7 @@ tests/**
 tsconfig.json
 *.vsix
 scratch*
+PROJECT_CONTEXT.md
 *.log
 bin/*.cs
 **/*.map

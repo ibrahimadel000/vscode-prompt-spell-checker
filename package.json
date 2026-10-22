@@ -69,21 +69,17 @@
     "menus": {
       "editor/context": [
         {
-          "command": "spellAssistant.quickFixWord",
-          "group": "1_modification@1"
-        },
-        {
           "command": "spellAssistant.openPromptChecker",
-          "group": "1_modification@2"
+          "group": "1_modification@1"
         },
         {
           "command": "spellAssistant.quickFixAndCopy",
           "when": "editorHasSelection",
-          "group": "1_modification@3"
+          "group": "1_modification@2"
         },
         {
-          "command": "spellAssistant.aiProofread",
-          "group": "1_modification@4"
+          "command": "spellAssistant.quickFixAll",
+          "group": "1_modification@3"
         }
       ],
       "editor/title": [
