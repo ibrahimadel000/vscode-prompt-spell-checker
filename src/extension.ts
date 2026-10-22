@@ -121,20 +121,17 @@ export async function activate(context: vscode.ExtensionContext) {
             let targetRange: vscode.Range | undefined;
             let isOsCaptured = true;
 
-            // If the captured text matches Monaco editor's current line or selection, link to Monaco
+            // If the user is inside an active Monaco editor, link targetEditor directly
             if (activeEd) {
-                if (!activeEd.selection.isEmpty && activeEd.document.getText(activeEd.selection).trim() === osCapturedText.trim()) {
-                    targetEditor = activeEd;
+                targetEditor = activeEd;
+                if (!activeEd.selection.isEmpty) {
                     targetRange = activeEd.selection;
-                    isOsCaptured = false;
                 } else {
+                    const wordRange = activeEd.document.getWordRangeAtPosition(activeEd.selection.active);
                     const currentLine = activeEd.document.lineAt(activeEd.selection.active.line);
-                    if (currentLine && (currentLine.text.trim() === osCapturedText.trim() || currentLine.text === osCapturedText)) {
-                        targetEditor = activeEd;
-                        targetRange = currentLine.range;
-                        isOsCaptured = false;
-                    }
+                    targetRange = wordRange || currentLine.range;
                 }
+                isOsCaptured = false;
             }
 
             return {

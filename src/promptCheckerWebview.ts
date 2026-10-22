@@ -145,15 +145,32 @@ export class PromptCheckerPanel {
 
                         await vscode.env.clipboard.writeText(cleanText);
 
+                        const targetEd = this._targetEditor;
+                        const targetRg = this._targetRange;
+
                         // Close webview panel
                         this.dispose();
 
                         // Short wait for webview panel to close
                         await new Promise(resolve => setTimeout(resolve, 80));
 
-                        // Focus the AI Chat box and paste the clean prompt
-                        await SelectionCapture.pasteToChat(30);
-                        vscode.window.setStatusBarMessage('✨ Fixed & pasted back into chat!', 4000);
+                        if (targetEd && targetRg) {
+                            try {
+                                const success = await targetEd.edit(editBuilder => {
+                                    editBuilder.replace(targetRg, cleanText);
+                                });
+                                if (success) {
+                                    vscode.window.setStatusBarMessage('✨ Fixed & replaced in editor!', 4000);
+                                    break;
+                                }
+                            } catch (e) {}
+                            await SelectionCapture.pasteToOS(30);
+                            vscode.window.setStatusBarMessage('✨ Fixed & pasted in editor!', 4000);
+                        } else {
+                            // Focus the AI Chat box and paste the clean prompt
+                            await SelectionCapture.pasteToChat(30);
+                            vscode.window.setStatusBarMessage('✨ Fixed & pasted back into chat!', 4000);
+                        }
                         break;
                     }
                     case 'applyAiAutoFix': {
@@ -1120,7 +1137,7 @@ export class PromptCheckerPanel {
             <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
             </svg>
-            <span>Fix &amp; Paste to Chat</span>
+            <span id="btnFixAndPasteText">Fix &amp; Paste to Chat</span>
             <kbd class="kbd kbd-light">Ctrl+Shift+↵</kbd>
         </button>
 
@@ -1720,9 +1737,14 @@ export class PromptCheckerPanel {
             switch (msg.command) {
                 case 'loadText':
                     textarea.value = msg.text || '';
+                    const btnText = document.getElementById('btnFixAndPasteText');
                     if (msg.hasEditorTarget) {
+                        if (btnText) btnText.textContent = 'Fix & Replace in Editor';
+                        btnFixAndPaste.title = 'Fix all typos and replace in editor (Ctrl+Shift+Enter)';
                         btnReplaceEditor.style.display = 'inline-flex';
                     } else {
+                        if (btnText) btnText.textContent = 'Fix & Paste to Chat';
+                        btnFixAndPaste.title = 'Fix all typos and paste into AI chat (Ctrl+Shift+Enter)';
                         btnReplaceEditor.style.display = 'none';
                     }
                     updateEmptyState();

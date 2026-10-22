@@ -177,16 +177,22 @@ export class SelectionCapture {
      */
     public static async pasteToChat(delayMs: number = 30): Promise<boolean> {
         let focused = false;
-
-        // Try non-toggling focus commands first so an open chat panel is never accidentally toggled closed
+        // Try standard chat input focus commands first
         try {
-            await vscode.commands.executeCommand('antigravity.openChatView');
+            await vscode.commands.executeCommand('workbench.action.chat.focusInput');
             focused = true;
         } catch {}
 
         if (!focused) {
             try {
-                await vscode.commands.executeCommand('workbench.action.chat.focusInput');
+                await vscode.commands.executeCommand('antigravity.agentSidePanel.focus');
+                focused = true;
+            } catch {}
+        }
+
+        if (!focused) {
+            try {
+                await vscode.commands.executeCommand('antigravity.openChatView');
                 focused = true;
             } catch {}
         }
@@ -198,15 +204,8 @@ export class SelectionCapture {
             } catch {}
         }
 
-        if (!focused) {
-            try {
-                await vscode.commands.executeCommand('antigravity.agentSidePanel.focus');
-                focused = true;
-            } catch {}
-        }
-
-        // Wait 100ms for the chat input box (Lexical editor) to receive full DOM focus
-        await new Promise((r) => setTimeout(r, 100));
+        // Wait 120ms for the chat input box (Lexical editor) to receive full DOM focus
+        await new Promise((r) => setTimeout(r, 120));
 
         // Now simulate OS-level Ctrl+V
         return SelectionCapture.pasteToOS(delayMs);
