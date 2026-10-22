@@ -122,31 +122,29 @@ async function activate(context) {
     // 3) Word under cursor in active editor
     // 4) Clipboard fallback
     async function getTargetTextAndRange(editor) {
-        // 1️⃣ Priority: If user has an active Monaco editor with text selected, use it directly (0ms)
         const activeEd = editor || vscode.window.activeTextEditor;
-        if (activeEd && !activeEd.selection.isEmpty) {
-            return {
-                text: activeEd.document.getText(activeEd.selection),
-                targetEditor: activeEd,
-                targetRange: activeEd.selection,
-                isOsCaptured: false
-            };
-        }
-        // 2️⃣ Priority: OS Global Selection Capture (AI Chat box, webviews, external controls)
-        // With autoSelectLine=true, if cursor is at the end of the prompt in the chat box,
-        // it selects the line (Shift+Home) and copies it automatically.
+        // 1️⃣ Priority: OS Global Selection Capture (AI Chat box, webviews, external controls, or editor)
+        // Captures directly from whatever control currently has keyboard focus!
+        // With autoSelectLine=true, if words are selected it copies them; if not, it copies the prompt line.
         const osCapturedText = await selectionCapture_1.SelectionCapture.captureFromOS(true);
         if (osCapturedText && osCapturedText.trim()) {
             let targetEditor;
             let targetRange;
             let isOsCaptured = true;
-            // If the captured text matches Monaco editor's current line, link to Monaco
+            // If the captured text matches Monaco editor's current line or selection, link to Monaco
             if (activeEd) {
-                const currentLine = activeEd.document.lineAt(activeEd.selection.active.line);
-                if (currentLine && (currentLine.text.trim() === osCapturedText.trim() || currentLine.text === osCapturedText)) {
+                if (!activeEd.selection.isEmpty && activeEd.document.getText(activeEd.selection).trim() === osCapturedText.trim()) {
                     targetEditor = activeEd;
-                    targetRange = currentLine.range;
+                    targetRange = activeEd.selection;
                     isOsCaptured = false;
+                }
+                else {
+                    const currentLine = activeEd.document.lineAt(activeEd.selection.active.line);
+                    if (currentLine && (currentLine.text.trim() === osCapturedText.trim() || currentLine.text === osCapturedText)) {
+                        targetEditor = activeEd;
+                        targetRange = currentLine.range;
+                        isOsCaptured = false;
+                    }
                 }
             }
             return {
@@ -156,7 +154,16 @@ async function activate(context) {
                 isOsCaptured
             };
         }
-        // 3️⃣ If user is in an active Monaco editor with no selection, use the current line
+        // 2️⃣ Fallback: Active Monaco text editor selection (if user is inside an editor)
+        if (activeEd && !activeEd.selection.isEmpty) {
+            return {
+                text: activeEd.document.getText(activeEd.selection),
+                targetEditor: activeEd,
+                targetRange: activeEd.selection,
+                isOsCaptured: false
+            };
+        }
+        // 3️⃣ Fallback: Current line in active Monaco editor
         if (activeEd) {
             const currentLine = activeEd.document.lineAt(activeEd.selection.active.line);
             if (currentLine && currentLine.text.trim().length > 0) {

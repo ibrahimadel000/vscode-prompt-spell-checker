@@ -112,7 +112,7 @@ class SelectionCapture {
             try {
                 await vscode.env.clipboard.writeText(marker);
                 await runKeystroke(action);
-                const deadline = Date.now() + 250;
+                const deadline = Date.now() + 450;
                 while (Date.now() < deadline) {
                     await new Promise((r) => setTimeout(r, 20));
                     try {

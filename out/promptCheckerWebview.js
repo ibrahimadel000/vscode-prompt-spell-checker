@@ -255,6 +255,16 @@ class PromptCheckerPanel {
             }
         }
     }
+    _escapeHtml(str) {
+        if (!str)
+            return '';
+        return str
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
     _getHtmlForWebview() {
         return `<!DOCTYPE html>
 <html lang="en">
@@ -1045,8 +1055,8 @@ class PromptCheckerPanel {
             autocomplete="off"
             autocorrect="off"
             autocapitalize="off"
-        ></textarea>
-        <div id="emptyOverlay" class="empty-overlay">
+        >${this._escapeHtml(this._currentText)}</textarea>
+        <div id="emptyOverlay" class="empty-overlay${this._currentText && this._currentText.trim().length > 0 ? ' hidden' : ''}">
             <div class="empty-icon-wrap">
                 <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
@@ -1704,7 +1714,8 @@ class PromptCheckerPanel {
                     renderHighlights();
                     renderResults(currentMisspellings);
                     break;
-
+            }
+        });
 
         // ── Update Status Badge ───────────────────────────────────
         function renderResults(misspellings) {
@@ -1724,6 +1735,11 @@ class PromptCheckerPanel {
             statusBadge.classList.remove('pulse-clean');
             statusText.textContent = activeErrors.length + (activeErrors.length === 1 ? ' typo' : ' typos');
         }
+
+        // Initial render for preloaded prompt text
+        updateEmptyState();
+        updateStats();
+        renderHighlights();
 
         // Notify extension that Webview DOM is ready
         vscode.postMessage({ command: 'ready' });
