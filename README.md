@@ -31,14 +31,14 @@ Standard spell checkers only scan open files in your workspace—they completely
 
 | Shortcut | Mode | Behavior |
 | :---: | :--- | :--- |
-| <kbd>Alt</kbd> + <kbd>W</kbd>   | **Instant Auto-Fix** | **Zero UI.** Automatically captures text from the active chat box, fixes mistakes, and pastes clean text back in place. |
-| <kbd>Alt</kbd> + <kbd>Q</kbd>   | **Interactive Inspector** | Opens a side-by-side review panel with squiggly highlights and one-click replacement chips. |
+| <nobr><kbd>Alt</kbd>&nbsp;+&nbsp;<kbd>W</kbd></nobr> | **Instant Auto-Fix** | **Zero UI.** Automatically captures text from the active chat box, fixes mistakes, and pastes clean text back in place. |
+| <nobr><kbd>Alt</kbd>&nbsp;+&nbsp;<kbd>Q</kbd></nobr> | **Interactive Inspector** | Opens a side-by-side review panel with squiggly highlights and one-click replacement chips. |
 
 ---
 
 ## 🎯 Real-World Examples
 
-| Prompt (Before) | Corrected Output (<kbd>Alt</kbd> + <kbd>W</kbd>) | What It Resolves |
+| Prompt (Before) | Corrected Output (<nobr><kbd>Alt</kbd>&nbsp;+&nbsp;<kbd>W</kbd></nobr>) | What It Resolves |
 | :--- | :--- | :--- |
 | `can u fix this fucntion resposne pls` | `Can you fix this function response please` | Fixes dev slang & typos |
 | `their is a error in this peace of code` | `There is an error in this piece of code` | Fixes contextual homophones |
@@ -60,7 +60,7 @@ Standard spell checkers only scan open files in your workspace—they completely
 1. Open **VS Code** (or **Antigravity IDE**).
 2. Go to the Extensions panel (`Ctrl+Shift+X` or `Cmd+Shift+X`).
 3. Search for **`AI Chat Spell Assistant`** and click **Install**.
-4. In any chat input, type your prompt and press <kbd>Alt</kbd> + <kbd>W</kbd>.
+4. In any chat input, type your prompt and press <nobr><kbd>Alt</kbd>&nbsp;+&nbsp;<kbd>W</kbd></nobr>.
 
 ---
 
