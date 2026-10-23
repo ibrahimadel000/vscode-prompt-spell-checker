@@ -131,25 +131,36 @@ export class PromptCheckerPanel {
                     }
                     case 'fixAndPasteToChat': {
                         this._currentText = message.text;
-                        let cleanText = message.text || '';
+                        const originalText = message.text || '';
                         const config = this._getConfig();
 
-                        // 1. Guarantee: ALWAYS fix phrases, contractions, and collocations
-                        const { text: phraseFixed } = applyContextualPhraseFixes(cleanText);
-                        cleanText = phraseFixed;
+                        // 1. Apply the exact same AI Proofreader that powers Alt+W
+                        let cleanText = originalText;
+                        if (this._aiProofreader && originalText.trim()) {
+                            try {
+                                const res = await this._aiProofreader.proofread(originalText, config.aiProofreader);
+                                cleanText = res.fixedText;
+                            } catch (e) {
+                                cleanText = originalText;
+                            }
+                        }
 
-                        // 2. Fix all word typos using SpellEngine suggestions
-                        const misspellings = this._spellEngine.findMisspellings(cleanText, config);
-                        const sorted = [...misspellings].sort((a, b) => b.start - a.start);
-                        for (const m of sorted) {
-                            if (m.suggestions && m.suggestions.length > 0 && m.suggestions[0] !== m.word) {
-                                cleanText = cleanText.slice(0, m.start) + m.suggestions[0] + cleanText.slice(m.end);
+                        // Guarantee Tier 1 phrase & spelling fallback
+                        if (cleanText === originalText) {
+                            const { text: phraseFixed } = applyContextualPhraseFixes(cleanText);
+                            cleanText = phraseFixed;
+                            const misspellings = this._spellEngine.findMisspellings(cleanText, config);
+                            const sorted = [...misspellings].sort((a, b) => b.start - a.start);
+                            for (const m of sorted) {
+                                if (m.suggestions && m.suggestions.length > 0 && m.suggestions[0] !== m.word) {
+                                    cleanText = cleanText.slice(0, m.start) + m.suggestions[0] + cleanText.slice(m.end);
+                                }
                             }
                         }
 
                         // Write clean fixed prompt to clipboard
                         await vscode.env.clipboard.writeText(cleanText);
-                        await new Promise(resolve => setTimeout(resolve, 60));
+                        await new Promise(resolve => setTimeout(resolve, 80));
 
                         const targetEd = this._targetEditor;
                         const targetRg = this._targetRange;

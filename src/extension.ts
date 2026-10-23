@@ -121,17 +121,23 @@ export async function activate(context: vscode.ExtensionContext) {
             let targetRange: vscode.Range | undefined;
             let isOsCaptured = true;
 
-            // If the user is inside an active Monaco editor, link targetEditor directly
+            // Only link targetEditor if the captured text actually came from activeEd!
+            // When user is in AI Chat input, activeEd is still the background tab.
             if (activeEd) {
-                targetEditor = activeEd;
-                if (!activeEd.selection.isEmpty) {
+                const edSelection = activeEd.document.getText(activeEd.selection);
+                const currentLine = activeEd.document.lineAt(activeEd.selection.active.line).text;
+                const trimmedCaptured = osCapturedText.trim();
+
+                if (!activeEd.selection.isEmpty && (edSelection.trim() === trimmedCaptured || edSelection.includes(trimmedCaptured))) {
+                    targetEditor = activeEd;
                     targetRange = activeEd.selection;
-                } else {
+                    isOsCaptured = false;
+                } else if (currentLine.trim() === trimmedCaptured || currentLine.includes(trimmedCaptured)) {
+                    targetEditor = activeEd;
                     const wordRange = activeEd.document.getWordRangeAtPosition(activeEd.selection.active);
-                    const currentLine = activeEd.document.lineAt(activeEd.selection.active.line);
-                    targetRange = wordRange || currentLine.range;
+                    targetRange = wordRange || activeEd.document.lineAt(activeEd.selection.active.line).range;
+                    isOsCaptured = false;
                 }
-                isOsCaptured = false;
             }
 
             return {
