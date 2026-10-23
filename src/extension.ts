@@ -121,21 +121,14 @@ export async function activate(context: vscode.ExtensionContext) {
             let targetRange: vscode.Range | undefined;
             let isOsCaptured = true;
 
-            // Only link targetEditor if the captured text actually came from activeEd!
-            // When user is in AI Chat input, activeEd is still the background tab.
-            if (activeEd) {
-                const edSelection = activeEd.document.getText(activeEd.selection);
-                const currentLine = activeEd.document.lineAt(activeEd.selection.active.line).text;
+            // Only link targetEditor if the user explicitly had this exact selection highlighted in activeEd.
+            // When user is typing or selecting in AI Chat, activeEd is just the background tab and must NOT be linked.
+            if (activeEd && !activeEd.selection.isEmpty) {
+                const edSelection = activeEd.document.getText(activeEd.selection).trim();
                 const trimmedCaptured = osCapturedText.trim();
-
-                if (!activeEd.selection.isEmpty && (edSelection.trim() === trimmedCaptured || edSelection.includes(trimmedCaptured))) {
+                if (edSelection === trimmedCaptured) {
                     targetEditor = activeEd;
                     targetRange = activeEd.selection;
-                    isOsCaptured = false;
-                } else if (currentLine.trim() === trimmedCaptured || currentLine.includes(trimmedCaptured)) {
-                    targetEditor = activeEd;
-                    const wordRange = activeEd.document.getWordRangeAtPosition(activeEd.selection.active);
-                    targetRange = wordRange || activeEd.document.lineAt(activeEd.selection.active.line).range;
                     isOsCaptured = false;
                 }
             }

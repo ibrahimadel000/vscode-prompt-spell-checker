@@ -182,36 +182,32 @@ export class SelectionCapture {
      * 3) Selecting all in chat box (Ctrl+A) and pasting (Ctrl+V) to replace old prompt
      */
     public static async pasteToChat(delayMs: number = 30): Promise<boolean> {
-        // Focus the chat panel/input across VS Code and Antigravity IDE
-        let focused = false;
-        try {
-            await vscode.commands.executeCommand('workbench.action.chat.focusInput');
-            focused = true;
-        } catch {}
+        const isAntigravity = /antigravity/i.test(vscode.env.appName || '');
 
-        if (!focused) {
+        if (isAntigravity) {
             try {
-                await vscode.commands.executeCommand('antigravity.agentSidePanel.focus');
-                focused = true;
-            } catch {}
+                await vscode.commands.executeCommand('antigravity.toggleChatFocus');
+            } catch {
+                try {
+                    await vscode.commands.executeCommand('antigravity.agentSidePanel.focus');
+                } catch {}
+            }
+        } else {
+            try {
+                await vscode.commands.executeCommand('workbench.action.chat.focusInput');
+            } catch {
+                try {
+                    await vscode.commands.executeCommand('antigravity.toggleChatFocus');
+                } catch {
+                    try {
+                        await vscode.commands.executeCommand('workbench.action.chat.open');
+                    } catch {}
+                }
+            }
         }
 
-        if (!focused) {
-            try {
-                await vscode.commands.executeCommand('antigravity.openChatView');
-                focused = true;
-            } catch {}
-        }
-
-        if (!focused) {
-            try {
-                await vscode.commands.executeCommand('workbench.action.chat.open');
-                focused = true;
-            } catch {}
-        }
-
-        // Wait 160ms for the chat input box (Lexical editor in webview iframe) to settle full DOM focus
-        await new Promise((r) => setTimeout(r, 160));
+        // Wait 200ms for the chat input box (Lexical editor in webview iframe) to settle full DOM focus
+        await new Promise((r) => setTimeout(r, 200));
 
         // Now simulate OS-level Ctrl+A + Ctrl+V to cleanly replace the prompt
         return SelectionCapture.pasteToOS(delayMs, true);
