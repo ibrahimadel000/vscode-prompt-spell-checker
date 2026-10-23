@@ -106,10 +106,32 @@ export function shouldSkipWord(
     // camelCase / snake_case identifiers
     if (options.ignoreCamelCase && looksLikeIdentifier(word)) { return true; }
 
-    // Adjacent to path/identifier punctuation
+    // Adjacent to path/identifier punctuation (e.g. foo.bar, file/path, obj_prop)
+    // NOTE: A period at the end of a sentence (followed by whitespace, quotes, or end of string) is NOT an identifier!
     const charBefore = start > 0 ? text[start - 1] : '';
     const charAfter = end < text.length ? text[end] : '';
-    if ((charBefore && '._/\\-#'.includes(charBefore)) || (charAfter && '._/\\-'.includes(charAfter))) {
+
+    if (charAfter === '.') {
+        // Only skip if dot is followed by an identifier letter/number (e.g. foo.bar or file.ext)
+        if (end + 1 < text.length && /[a-zA-Z0-9_]/.test(text[end + 1])) {
+            return true;
+        }
+    } else if (charAfter && '_/\\'.includes(charAfter)) {
+        return true;
+    } else if (charAfter === '-' && end + 1 < text.length && /[a-zA-Z0-9_]/.test(text[end + 1])) {
+        // Skip kebab-case identifiers like my-component
+        return true;
+    }
+
+    if (charBefore === '.') {
+        // Only skip if dot is preceded by an identifier letter/number (e.g. foo.bar)
+        if (start > 1 && /[a-zA-Z0-9_]/.test(text[start - 2])) {
+            return true;
+        }
+    } else if (charBefore && '_/\\#'.includes(charBefore)) {
+        return true;
+    } else if (charBefore === '-' && start > 1 && /[a-zA-Z0-9_]/.test(text[start - 2])) {
+        // Skip kebab-case identifiers
         return true;
     }
 

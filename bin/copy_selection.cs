@@ -40,11 +40,10 @@ class Program {
     static void SafeReleaseModifiers() {
         bool altHeld = IsKeyHeld(VK_MENU) || IsKeyHeld(VK_LMENU) || IsKeyHeld(VK_RMENU);
         if (altHeld) {
-            // Sending dummy unassigned key (0xFF) before releasing Alt tells Windows
-            // that Alt was not a standalone tap, preventing Windows from activating
-            // the top menu bar (File/Edit) and stealing keyboard focus from the chat input!
-            keybd_event(0xFF, 0, 0, UIntPtr.Zero);
-            keybd_event(0xFF, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
+            // Tapping Control safely tells Windows that Alt was part of a combo,
+            // preventing Windows from activating the top menu bar without typing any character.
+            keybd_event(VK_CONTROL, 0, 0, UIntPtr.Zero);
+            keybd_event(VK_CONTROL, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
             keybd_event(VK_LMENU, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
             keybd_event(VK_RMENU, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
             keybd_event(VK_MENU, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);

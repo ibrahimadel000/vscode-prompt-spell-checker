@@ -56,8 +56,8 @@ export class AIProofreader {
         if (cfg.provider === 'vscode-lm' || (cfg.provider === 'auto' && this._hasVsCodeLm())) {
             try {
                 const lmResult = await this._proofreadWithVsCodeLm(candidateText, token);
-                if (lmResult && lmResult.fixedText && lmResult.fixedText.trim()) {
-                    candidateText = lmResult.fixedText;
+                if (lmResult && lmResult.fixedText && this._isValidProofreadResult(candidateText, lmResult.fixedText)) {
+                    candidateText = lmResult.fixedText.trim();
                     providerUsed = lmResult.providerUsed;
                 }
             } catch (err) {
@@ -68,8 +68,8 @@ export class AIProofreader {
         else if (cfg.provider === 'custom-llm' && cfg.customEndpoint) {
             try {
                 const customResult = await this._proofreadWithCustomLlm(candidateText, cfg, token);
-                if (customResult && customResult.fixedText && customResult.fixedText.trim()) {
-                    candidateText = customResult.fixedText;
+                if (customResult && customResult.fixedText && this._isValidProofreadResult(candidateText, customResult.fixedText)) {
+                    candidateText = customResult.fixedText.trim();
                     providerUsed = customResult.providerUsed;
                 }
             } catch (err) {
@@ -80,8 +80,8 @@ export class AIProofreader {
         else if (cfg.provider === 'languagetool') {
             try {
                 const ltResult = await this._proofreadWithLanguageTool(candidateText, cfg.languageToolEndpoint);
-                if (ltResult && ltResult.fixedText && ltResult.fixedText.trim()) {
-                    candidateText = ltResult.fixedText;
+                if (ltResult && ltResult.fixedText && this._isValidProofreadResult(candidateText, ltResult.fixedText)) {
+                    candidateText = ltResult.fixedText.trim();
                     providerUsed = ltResult.providerUsed;
                 }
             } catch (err) {
@@ -359,4 +359,37 @@ export class AIProofreader {
 
         return changes;
     }
+
+    /**
+     * Validates that an AI proofreader response is a legitimate text correction,
+     * not a hallucination, truncation, or lone punctuation mark (like "." or "...").
+     */
+    private _isValidProofreadResult(baseline: string, proposed: string): boolean {
+        if (!proposed || !proposed.trim()) {
+            return false;
+        }
+        const trimmedProposed = proposed.trim();
+        const trimmedBaseline = baseline.trim();
+
+        // 1. If baseline contained letters, proposed MUST contain letters
+        // (prevents returning lone "." or other punctuation)
+        if (/[a-zA-Z]/.test(trimmedBaseline) && !/[a-zA-Z]/.test(trimmedProposed)) {
+            return false;
+        }
+
+        // 2. Length check: proposed cannot be drastically shorter than baseline
+        if (trimmedBaseline.length >= 6 && trimmedProposed.length < trimmedBaseline.length * 0.45) {
+            return false;
+        }
+
+        // 3. Word count check: cannot drop more than 60% of words
+        const baseWords = trimmedBaseline.split(/\s+/).filter(Boolean);
+        const propWords = trimmedProposed.split(/\s+/).filter(Boolean);
+        if (baseWords.length >= 3 && propWords.length < Math.floor(baseWords.length * 0.4)) {
+            return false;
+        }
+
+        return true;
+    }
 }
+

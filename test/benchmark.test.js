@@ -372,6 +372,15 @@ async function runTests() {
     test('multiple consecutive spaces collapsed to single space', () => {
         assert.strictEqual(autoFix('clean   up   spaces'), 'clean up spaces');
     });
+    test('typos before period at sentence end are correctly fixed', () => {
+        assert.strictEqual(autoFix('i dant.'), "I don't.");
+        assert.strictEqual(autoFix('this is enuf.'), 'this is enough.');
+        assert.strictEqual(autoFix('plea tanned.'), 'play tennis.');
+        assert.strictEqual(autoFix('i cant see this. dant do that.'), "I can't see this. don't do that.");
+    });
+    test('code property with dot is preserved while typo in sentence is fixed', () => {
+        assert.strictEqual(autoFix('check config.aiProofreader because i cant.'), "check config.aiProofreader because I can't.");
+    });
 
     // ─── 13. AI Predictive Proofreader (Tier 2 Hybrid Engine) ────────
     console.log('\n📌 Category 13: AI Predictive Proofreader (Tier 2 Hybrid Engine)');
@@ -392,6 +401,14 @@ async function runTests() {
         assert.strictEqual(res.fixedText, "I can't play tennis today");
         assert.strictEqual(res.providerUsed, "Local Offline Engine");
         assert.ok(res.durationMs >= 0);
+    });
+
+    await test('AIProofreader local-fallback mode with period at end', async () => {
+        const res = await proofreader.proofread("i cant plea tanned today.", {
+            enabled: true,
+            provider: 'local-fallback'
+        });
+        assert.strictEqual(res.fixedText, "I can't play tennis today.");
     });
 
     await test('AIProofreader local-fallback preserves code identifiers', async () => {
