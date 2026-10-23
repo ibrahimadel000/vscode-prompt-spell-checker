@@ -23,6 +23,7 @@ class Program {
     const byte VK_V = 0x56;
     const byte VK_Q = 0x51;
     const byte VK_W = 0x57;
+    const byte VK_A = 0x41;
     const byte VK_HOME = 0x24;
     const byte VK_END = 0x23;
 
@@ -61,12 +62,15 @@ class Program {
     [STAThread]
     static void Main(string[] args) {
         bool isPaste = false;
+        bool isReplacePaste = false;
         bool isCopyLine = false;
         int delayMs = 30;
 
         for (int i = 0; i < args.Length; i++) {
             if (args[i] == "--paste") {
                 isPaste = true;
+            } else if (args[i] == "--replace-paste") {
+                isReplacePaste = true;
             } else if (args[i] == "--copy-line") {
                 isCopyLine = true;
             } else if (args[i] == "--delay" && i + 1 < args.Length) {
@@ -78,7 +82,25 @@ class Program {
         SafeReleaseModifiers();
         Thread.Sleep(Math.Max(10, delayMs));
 
-        if (isPaste) {
+        if (isReplacePaste) {
+            // Select all in focused control (Ctrl+A) then paste over (Ctrl+V)
+            keybd_event(VK_CONTROL, 0, 0, UIntPtr.Zero);
+            Thread.Sleep(15);
+            keybd_event(VK_A, 0, 0, UIntPtr.Zero);
+            Thread.Sleep(25);
+            keybd_event(VK_A, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
+            Thread.Sleep(15);
+            keybd_event(VK_CONTROL, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
+            Thread.Sleep(25);
+
+            keybd_event(VK_CONTROL, 0, 0, UIntPtr.Zero);
+            Thread.Sleep(15);
+            keybd_event(VK_V, 0, 0, UIntPtr.Zero);
+            Thread.Sleep(30);
+            keybd_event(VK_V, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
+            Thread.Sleep(15);
+            keybd_event(VK_CONTROL, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
+        } else if (isPaste) {
             keybd_event(VK_CONTROL, 0, 0, UIntPtr.Zero);
             Thread.Sleep(20);
             keybd_event(VK_V, 0, 0, UIntPtr.Zero);

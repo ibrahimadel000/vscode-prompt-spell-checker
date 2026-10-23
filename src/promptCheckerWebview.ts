@@ -134,16 +134,31 @@ export class PromptCheckerPanel {
                         let cleanText = message.text || '';
                         const config = this._getConfig();
 
+                        // 1. Guarantee: ALWAYS fix phrases and spellings directly with SpellEngine
+                        const { text: phraseFixed } = applyContextualPhraseFixes(cleanText);
+                        cleanText = phraseFixed;
+                        const misspellings = this._spellEngine.findMisspellings(cleanText, config);
+                        const sorted = [...misspellings].sort((a, b) => b.start - a.start);
+                        for (const m of sorted) {
+                            if (m.suggestions && m.suggestions.length > 0 && m.suggestions[0] !== m.word) {
+                                cleanText = cleanText.slice(0, m.start) + m.suggestions[0] + cleanText.slice(m.end);
+                            }
+                        }
+
+                        // 2. Optional AI proofreader grammar refinement
                         if (this._aiProofreader && cleanText.trim()) {
                             try {
                                 const aiRes = await this._aiProofreader.proofread(cleanText, config.aiProofreader);
-                                cleanText = aiRes.fixedText;
+                                if (aiRes && aiRes.fixedText && aiRes.fixedText.trim()) {
+                                    cleanText = aiRes.fixedText;
+                                }
                             } catch (e) {
                                 // Handled by proofread fallback
                             }
                         }
 
                         await vscode.env.clipboard.writeText(cleanText);
+                        await new Promise(resolve => setTimeout(resolve, 60));
 
                         const targetEd = this._targetEditor;
                         const targetRg = this._targetRange;

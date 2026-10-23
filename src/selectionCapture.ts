@@ -126,7 +126,7 @@ export class SelectionCapture {
      * Pastes the current clipboard content directly over the active selection in whatever
      * control currently has focus (e.g. Antigravity chat input, editor, etc.).
      */
-    public static async pasteToOS(delayMs: number = 30): Promise<boolean> {
+    public static async pasteToOS(delayMs: number = 30, replaceSelection: boolean = false): Promise<boolean> {
         const platform = process.platform;
         if (platform !== 'win32' && platform !== 'darwin' && platform !== 'linux') {
             return false;
@@ -142,7 +142,7 @@ export class SelectionCapture {
                     resolve(false);
                     return;
                 }
-                const args = ['--paste'];
+                const args = [replaceSelection ? '--replace-paste' : '--paste'];
                 if (delayMs > 0) {
                     args.push('--delay', delayMs.toString());
                 }
@@ -155,12 +155,18 @@ export class SelectionCapture {
                     }
                 });
             } else if (platform === 'darwin') {
-                execFile('osascript', ['-e', 'tell application "System Events" to keystroke "v" using {command down}'], (err) => {
+                const script = replaceSelection
+                    ? 'tell application "System Events" to keystroke "a" using {command down}\ntell application "System Events" to keystroke "v" using {command down}'
+                    : 'tell application "System Events" to keystroke "v" using {command down}';
+                execFile('osascript', ['-e', script], (err) => {
                     resolve(!err);
                 });
             } else if (platform === 'linux') {
+                const cmd = replaceSelection
+                    ? 'xdotool key --clearmodifiers ctrl+a ctrl+v'
+                    : 'xdotool key --clearmodifiers ctrl+v';
                 const { exec } = require('child_process');
-                exec('xdotool key --clearmodifiers ctrl+v', (err: any) => {
+                exec(cmd, (err: any) => {
                     resolve(!err);
                 });
             } else {
@@ -171,9 +177,9 @@ export class SelectionCapture {
 
     /**
      * Pastes clipboard content directly into the Antigravity/AI Chat box by:
-     * 1) Focusing the chat input box via non-toggling IDE commands (antigravity.openChatView, workbench.action.chat.focusInput)
+     * 1) Focusing the chat input box via non-toggling IDE commands (workbench.action.chat.focusInput, antigravity)
      * 2) Waiting briefly for DOM focus transition in the Lexical input
-     * 3) Simulating Ctrl+V via copy_selection.exe --paste
+     * 3) Selecting all in chat box (Ctrl+A) and pasting (Ctrl+V) to replace old prompt
      */
     public static async pasteToChat(delayMs: number = 30): Promise<boolean> {
         let focused = false;
@@ -207,7 +213,7 @@ export class SelectionCapture {
         // Wait 120ms for the chat input box (Lexical editor) to receive full DOM focus
         await new Promise((r) => setTimeout(r, 120));
 
-        // Now simulate OS-level Ctrl+V
-        return SelectionCapture.pasteToOS(delayMs);
+        // Now simulate OS-level Ctrl+A + Ctrl+V to cleanly replace the prompt
+        return SelectionCapture.pasteToOS(delayMs, true);
     }
 }
