@@ -31,8 +31,8 @@ Standard spell checkers only scan open files in your workspace—they completely
 
 | Shortcut | Mode | Behavior |
 | :---: | :--- | :--- |
-| <kbd>Alt</kbd> + <kbd>W</kbd> | **Instant Auto-Fix** | **Zero UI.** Automatically captures text from the active chat box, fixes mistakes, and pastes clean text back in place. |
-| <kbd>Alt</kbd> + <kbd>Q</kbd> | **Interactive Inspector** | Opens a side-by-side review panel with squiggly highlights and one-click replacement chips. |
+| <kbd>Alt</kbd> + <kbd>W</kbd>   | **Instant Auto-Fix** | **Zero UI.** Automatically captures text from the active chat box, fixes mistakes, and pastes clean text back in place. |
+| <kbd>Alt</kbd> + <kbd>Q</kbd>   | **Interactive Inspector** | Opens a side-by-side review panel with squiggly highlights and one-click replacement chips. |
 
 ---
 
