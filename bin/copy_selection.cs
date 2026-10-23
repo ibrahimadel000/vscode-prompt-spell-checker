@@ -84,16 +84,16 @@ class Program {
         if (isReplacePaste) {
             // Select all in focused control (Ctrl+A) then paste over (Ctrl+V)
             keybd_event(VK_CONTROL, 0, 0, UIntPtr.Zero);
-            Thread.Sleep(20);
+            Thread.Sleep(25);
             keybd_event(VK_A, 0, 0, UIntPtr.Zero);
-            Thread.Sleep(30);
+            Thread.Sleep(35);
             keybd_event(VK_A, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
             Thread.Sleep(20);
             keybd_event(VK_CONTROL, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
-            Thread.Sleep(45);
+            Thread.Sleep(50);
 
             keybd_event(VK_CONTROL, 0, 0, UIntPtr.Zero);
-            Thread.Sleep(20);
+            Thread.Sleep(25);
             keybd_event(VK_V, 0, 0, UIntPtr.Zero);
             Thread.Sleep(35);
             keybd_event(VK_V, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);

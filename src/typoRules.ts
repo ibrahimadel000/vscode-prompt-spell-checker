@@ -223,6 +223,10 @@ export const COMMON_TYPOS: Record<string, string[]> = {
     asistant: ["assistant"],
 
     // Developer & Coding slip-ups
+    functon: ["function"],
+    functoin: ["function"],
+    fucntoin: ["function"],
+    funtcion: ["function"],
     fucntion: ["function"],
     funciton: ["function"],
     funtion: ["function"],
@@ -570,7 +574,8 @@ export function levenshteinDistance(a: string, b: string): number {
 export const BLOCKED_SUGGESTIONS: Set<string> = new Set([
     'cunt', 'cunts', 'dick', 'dicks', 'pussy', 'pussies', 'bitch', 'bitches',
     'shit', 'shits', 'fuck', 'fucks', 'fucking', 'fucked', 'asshole', 'assholes',
-    'nigger', 'niggers', 'nigga', 'niggas', 'faggot', 'faggots', 'slut', 'sluts', 'whore', 'whores'
+    'nigger', 'niggers', 'nigga', 'niggas', 'faggot', 'faggots', 'slut', 'sluts', 'whore', 'whores',
+    'func ton'
 ]);
 
 export const COMMON_BIGRAMS: Set<string> = new Set([

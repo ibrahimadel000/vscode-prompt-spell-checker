@@ -16,7 +16,7 @@ export class PromptCheckerPanel {
     private readonly _spellEngine: SpellEngine;
     private readonly _userDictionary: UserDictionary;
     private readonly _getConfig: () => ExtensionConfig;
-    private readonly _aiProofreader?: AIProofreader;
+    private _aiProofreader?: AIProofreader;
     private _disposables: vscode.Disposable[] = [];
     private _currentText: string = '';
     private _targetEditor: vscode.TextEditor | undefined;
@@ -36,6 +36,9 @@ export class PromptCheckerPanel {
 
         if (PromptCheckerPanel.currentPanel) {
             PromptCheckerPanel.currentPanel._panel.reveal(column);
+            if (aiProofreader) {
+                PromptCheckerPanel.currentPanel._aiProofreader = aiProofreader;
+            }
             // Update the text when non-empty text is selected
             if (initialText !== undefined && initialText.trim() !== '') {
                 PromptCheckerPanel.currentPanel.setText(initialText, targetEditor, targetRange);
@@ -131,21 +134,30 @@ export class PromptCheckerPanel {
                     }
                     case 'fixAndPasteToChat': {
                         this._currentText = message.text;
-                        const originalText = message.text || '';
+                        const originalText = (message.text || '').trim();
+                        if (!originalText) {
+                            this.dispose();
+                            break;
+                        }
                         const config = this._getConfig();
 
                         // 1. Apply the exact same AI Proofreader that powers Alt+W
                         let cleanText = originalText;
-                        if (this._aiProofreader && originalText.trim()) {
+                        let providerUsed = 'Local Offline Engine';
+                        if (this._aiProofreader) {
                             try {
                                 const res = await this._aiProofreader.proofread(originalText, config.aiProofreader);
-                                cleanText = res.fixedText;
+                                if (res && res.fixedText) {
+                                    cleanText = res.fixedText;
+                                    providerUsed = res.providerUsed;
+                                }
                             } catch (e) {
+                                console.warn('[PromptChecker] AI Proofreader failed, falling back:', e);
                                 cleanText = originalText;
                             }
                         }
 
-                        // Guarantee Tier 1 phrase & spelling fallback
+                        // Guarantee Tier 1 phrase & spelling fallback if text remained unchanged
                         if (cleanText === originalText) {
                             const { text: phraseFixed } = applyContextualPhraseFixes(cleanText);
                             cleanText = phraseFixed;
@@ -168,8 +180,8 @@ export class PromptCheckerPanel {
                         // Close webview panel
                         this.dispose();
 
-                        // Short wait for webview panel to close
-                        await new Promise(resolve => setTimeout(resolve, 80));
+                        // Settle delay for webview panel disposal
+                        await new Promise(resolve => setTimeout(resolve, 100));
 
                         if (targetEd && targetRg) {
                             try {
@@ -177,16 +189,16 @@ export class PromptCheckerPanel {
                                     editBuilder.replace(targetRg, cleanText);
                                 });
                                 if (success) {
-                                    vscode.window.setStatusBarMessage('✨ Fixed & replaced in editor!', 4000);
+                                    vscode.window.setStatusBarMessage(`✨ AI Fixed (${providerUsed}) & replaced in editor!`, 4000);
                                     break;
                                 }
                             } catch (e) {}
                             await SelectionCapture.pasteToOS(30);
-                            vscode.window.setStatusBarMessage('✨ Fixed & pasted in editor!', 4000);
+                            vscode.window.setStatusBarMessage(`✨ AI Fixed (${providerUsed}) & pasted in editor!`, 4000);
                         } else {
                             // Focus the AI Chat box and paste the clean prompt
                             await SelectionCapture.pasteToChat(30);
-                            vscode.window.setStatusBarMessage('✨ Fixed & pasted back into chat!', 4000);
+                            vscode.window.setStatusBarMessage(`✨ AI Fixed (${providerUsed}) & pasted back into chat!`, 4000);
                         }
                         break;
                     }
@@ -1654,28 +1666,23 @@ export class PromptCheckerPanel {
 
         // ── Main Action Bar Handlers ──────────────────────────────
         btnFixAndPaste.addEventListener('click', () => {
-            let text = textarea.value;
-            let count = 0;
-            const activeErrors = currentMisspellings.filter(m => !ignoredWords.has(m.word.toLowerCase()));
+            const text = textarea.value;
+            if (!text || !text.trim()) {
+                showToast('Prompt is empty', '⚠️');
+                return;
+            }
 
-            if (activeErrors.length > 0) {
-                pushHistory();
-                const sorted = [...activeErrors].sort((a, b) => b.start - a.start);
-                for (const m of sorted) {
-                    if (m.suggestions && m.suggestions.length > 0) {
-                        text = text.slice(0, m.start) + m.suggestions[0] + text.slice(m.end);
-                        count++;
-                    }
-                }
-                textarea.value = text;
+            btnFixAndPaste.disabled = true;
+            const btnSpan = document.getElementById('btnFixAndPasteText');
+            if (btnSpan) {
+                btnSpan.textContent = 'Fixing & Pasting...';
             }
 
             vscode.postMessage({
                 command: 'fixAndPasteToChat',
-                text: textarea.value,
-                count: count
+                text: text
             });
-            showToast('Pasting clean prompt into chat...', '⚡');
+            showToast('Fixing & pasting clean prompt into chat...', '⚡');
         });
 
         btnCopy.addEventListener('click', () => {

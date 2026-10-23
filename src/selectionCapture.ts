@@ -182,22 +182,36 @@ export class SelectionCapture {
      * 3) Selecting all in chat box (Ctrl+A) and pasting (Ctrl+V) to replace old prompt
      */
     public static async pasteToChat(delayMs: number = 30): Promise<boolean> {
-        // Try focusing the chat panel across Antigravity and VS Code
-        try {
-            await vscode.commands.executeCommand('antigravity.agentSidePanel.focus');
-        } catch {}
+        // Focus the chat panel/input across VS Code and Antigravity IDE
+        let focused = false;
         try {
             await vscode.commands.executeCommand('workbench.action.chat.focusInput');
-        } catch {}
-        try {
-            await vscode.commands.executeCommand('antigravity.openChatView');
-        } catch {}
-        try {
-            await vscode.commands.executeCommand('workbench.action.chat.open');
+            focused = true;
         } catch {}
 
-        // Wait 120ms for the chat input box (Lexical editor) to receive full DOM focus
-        await new Promise((r) => setTimeout(r, 120));
+        if (!focused) {
+            try {
+                await vscode.commands.executeCommand('antigravity.agentSidePanel.focus');
+                focused = true;
+            } catch {}
+        }
+
+        if (!focused) {
+            try {
+                await vscode.commands.executeCommand('antigravity.openChatView');
+                focused = true;
+            } catch {}
+        }
+
+        if (!focused) {
+            try {
+                await vscode.commands.executeCommand('workbench.action.chat.open');
+                focused = true;
+            } catch {}
+        }
+
+        // Wait 160ms for the chat input box (Lexical editor in webview iframe) to settle full DOM focus
+        await new Promise((r) => setTimeout(r, 160));
 
         // Now simulate OS-level Ctrl+A + Ctrl+V to cleanly replace the prompt
         return SelectionCapture.pasteToOS(delayMs, true);

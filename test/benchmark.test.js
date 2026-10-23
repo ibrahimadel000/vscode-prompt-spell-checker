@@ -312,9 +312,10 @@ async function runTests() {
 
     // ─── 11. Developer & Coding Slip-ups ─────────────────────────────
     console.log('\n📌 Category 11: Developer & Coding Slip-ups');
-    test('fucntion / funciton -> function', () => {
+    test('fucntion / funciton / functon -> function', () => {
         assert.strictEqual(autoFix('async fucntion getData'), 'async function getData');
         assert.strictEqual(autoFix('export funciton handleRequest'), 'export function handleRequest');
+        assert.strictEqual(autoFix('can u fix this functon'), 'can you fix this function');
     });
     test('retun -> return', () => {
         assert.strictEqual(autoFix('retun response'), 'return response');
