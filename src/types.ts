@@ -33,8 +33,6 @@ export interface AIProofreaderConfig {
     languageToolEndpoint?: string;
 }
 
-export type ChatTarget = 'auto' | 'codex' | 'antigravity' | 'copilot';
-
 export interface ExtensionConfig {
     enabled: boolean;
     checkOnType: boolean;
@@ -49,7 +47,6 @@ export interface ExtensionConfig {
     maxSuggestions: number;
     diagnosticSeverity?: 'error' | 'warning' | 'information';
     aiProofreader?: AIProofreaderConfig;
-    targetChat?: ChatTarget;
 }
 
 export const DEFAULT_DEV_WORDS: string[] = [

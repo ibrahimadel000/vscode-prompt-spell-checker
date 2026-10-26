@@ -2,7 +2,7 @@
 // Activates the AI Chat Spell Assistant extension.
 
 import * as vscode from 'vscode';
-import { ExtensionConfig, DEFAULT_DEV_WORDS, ChatTarget } from './types';
+import { ExtensionConfig, DEFAULT_DEV_WORDS } from './types';
 import { SpellEngine } from './spellEngine';
 import { DiagnosticsProvider } from './diagnosticsProvider';
 import { SpellCodeActionProvider } from './codeActionProvider';
@@ -35,7 +35,6 @@ function getConfig(): ExtensionConfig {
         ignoreAllCaps: cfg.get<boolean>('ignoreAllCaps', true),
         maxSuggestions: cfg.get<number>('maxSuggestions', 5),
         diagnosticSeverity: cfg.get<'error' | 'warning' | 'information'>('diagnosticSeverity', 'error'),
-        targetChat: cfg.get<ChatTarget>('targetChat', 'auto'),
         aiProofreader: {
             enabled: aiCfg.enabled ?? true,
             provider: aiCfg.provider ?? 'auto',
@@ -188,8 +187,7 @@ export async function activate(context: vscode.ExtensionContext) {
             aiProofreader,
             target.text || '',
             target.targetEditor,
-            target.targetRange,
-            context.globalState
+            target.targetRange
         );
     };
 
@@ -210,8 +208,7 @@ export async function activate(context: vscode.ExtensionContext) {
             aiProofreader,
             target.text,
             target.targetEditor,
-            target.targetRange,
-            context.globalState
+            target.targetRange
         );
     };
 

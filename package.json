@@ -2,7 +2,7 @@
   "name": "ai-chat-spell-assistant",
   "displayName": "AI Chat Spell Assistant",
   "description": "Intelligent spell & prompt corrector for AI coding assistant chats (Copilot, Claude, ChatGPT, Antigravity). Instant auto-fix & interactive review.",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "publisher": "ibrahim-adel",
   "icon": "assets/icon.png",
   "license": "MIT",
@@ -251,23 +251,6 @@
           "type": "string",
           "default": "https://api.languagetool.org/v2/check",
           "description": "LanguageTool REST API endpoint (defaults to official public API or self-hosted server)."
-        },
-        "spellAssistant.targetChat": {
-          "type": "string",
-          "enum": [
-            "auto",
-            "codex",
-            "antigravity",
-            "copilot"
-          ],
-          "enumDescriptions": [
-            "Automatically detect target chat (prioritizes Codex if installed, then Antigravity / Copilot)",
-            "OpenAI Codex Chat (chatgpt.sidebarView)",
-            "Antigravity Agent Chat",
-            "GitHub Copilot / VS Code Chat"
-          ],
-          "default": "auto",
-          "description": "Choose which AI Chat to paste into when using \"Fix & Paste to Chat\" in the Prompt Inspector."
         }
       }
     }
