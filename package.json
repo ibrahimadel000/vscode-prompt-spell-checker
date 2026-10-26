@@ -2,7 +2,7 @@
   "name": "ai-chat-spell-assistant",
   "displayName": "AI Chat Spell Assistant",
   "description": "Intelligent spell & prompt corrector for AI coding assistant chats (Copilot, Claude, ChatGPT, Antigravity). Instant auto-fix & interactive review.",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "publisher": "ibrahim-adel",
   "icon": "assets/icon.png",
   "license": "MIT",
@@ -14,10 +14,29 @@
     "url": "https://github.com/ibrahimadel000/vscode-prompt-spell-checker/issues"
   },
   "homepage": "https://github.com/ibrahimadel000/vscode-prompt-spell-checker#readme",
-  "engines": { "vscode": "^1.85.0" },
-  "categories": ["Linters", "Other", "Machine Learning"],
-  "keywords": ["spell", "spellcheck", "typo", "ai", "chat", "copilot", "codex", "antigravity", "prompt", "grammar"],
-  "activationEvents": ["onStartupFinished"],
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Linters",
+    "Other",
+    "Machine Learning"
+  ],
+  "keywords": [
+    "spell",
+    "spellcheck",
+    "typo",
+    "ai",
+    "chat",
+    "copilot",
+    "codex",
+    "antigravity",
+    "prompt",
+    "grammar"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
@@ -138,14 +157,23 @@
         },
         "spellAssistant.extraKnownWords": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": {
+            "type": "string"
+          },
           "default": [],
           "description": "Additional words to treat as correctly spelled."
         },
         "spellAssistant.targetLanguages": {
           "type": "array",
-          "items": { "type": "string" },
-          "default": ["markdown", "plaintext", "git-commit", "scminput"],
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "markdown",
+            "plaintext",
+            "git-commit",
+            "scminput"
+          ],
           "description": "Language IDs of documents to spell-check."
         },
         "spellAssistant.ignoreCamelCase": {
@@ -180,7 +208,11 @@
         },
         "spellAssistant.diagnosticSeverity": {
           "type": "string",
-          "enum": ["error", "warning", "information"],
+          "enum": [
+            "error",
+            "warning",
+            "information"
+          ],
           "default": "error",
           "description": "Visual style for typos in editor tabs: 'error' (red squiggly line), 'warning' (yellow squiggly line), or 'information' (subtle dots)."
         },
@@ -191,7 +223,12 @@
         },
         "spellAssistant.aiProofreader.provider": {
           "type": "string",
-          "enum": ["auto", "vscode-lm", "languagetool", "custom-llm"],
+          "enum": [
+            "auto",
+            "vscode-lm",
+            "languagetool",
+            "custom-llm"
+          ],
           "default": "auto",
           "description": "AI Proofreader provider: 'auto' (tries vscode.lm then LanguageTool), 'vscode-lm' (uses IDE native AI model), 'languagetool' (uses LanguageTool grammar API), or 'custom-llm' (custom OpenAI/Ollama endpoint)."
         },
@@ -214,6 +251,23 @@
           "type": "string",
           "default": "https://api.languagetool.org/v2/check",
           "description": "LanguageTool REST API endpoint (defaults to official public API or self-hosted server)."
+        },
+        "spellAssistant.targetChat": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "codex",
+            "antigravity",
+            "copilot"
+          ],
+          "enumDescriptions": [
+            "Automatically detect target chat (prioritizes Codex if installed, then Antigravity / Copilot)",
+            "OpenAI Codex Chat (chatgpt.sidebarView)",
+            "Antigravity Agent Chat",
+            "GitHub Copilot / VS Code Chat"
+          ],
+          "default": "auto",
+          "description": "Choose which AI Chat to paste into when using \"Fix & Paste to Chat\" in the Prompt Inspector."
         }
       }
     }

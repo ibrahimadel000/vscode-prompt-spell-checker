@@ -21,6 +21,7 @@ export class PromptCheckerPanel {
     private _currentText: string = '';
     private _targetEditor: vscode.TextEditor | undefined;
     private _targetRange: vscode.Range | undefined;
+    private _globalState?: vscode.Memento;
 
     public static createOrShow(
         extensionUri: vscode.Uri,
@@ -30,7 +31,8 @@ export class PromptCheckerPanel {
         aiProofreader?: AIProofreader,
         initialText?: string,
         targetEditor?: vscode.TextEditor,
-        targetRange?: vscode.Range
+        targetRange?: vscode.Range,
+        globalState?: vscode.Memento
     ) {
         const column = vscode.ViewColumn.Beside;
 
@@ -38,6 +40,9 @@ export class PromptCheckerPanel {
             PromptCheckerPanel.currentPanel._panel.reveal(column);
             if (aiProofreader) {
                 PromptCheckerPanel.currentPanel._aiProofreader = aiProofreader;
+            }
+            if (globalState) {
+                PromptCheckerPanel.currentPanel._globalState = globalState;
             }
             // Update the text when non-empty text is selected
             if (initialText !== undefined && initialText.trim() !== '') {
@@ -66,7 +71,8 @@ export class PromptCheckerPanel {
             aiProofreader,
             initialText ?? '',
             targetEditor,
-            targetRange
+            targetRange,
+            globalState
         );
     }
 
@@ -79,7 +85,8 @@ export class PromptCheckerPanel {
         aiProofreader: AIProofreader | undefined,
         initialText: string,
         targetEditor?: vscode.TextEditor,
-        targetRange?: vscode.Range
+        targetRange?: vscode.Range,
+        globalState?: vscode.Memento
     ) {
         this._panel = panel;
         this._extensionUri = extensionUri;
@@ -90,6 +97,7 @@ export class PromptCheckerPanel {
         this._currentText = initialText;
         this._targetEditor = targetEditor;
         this._targetRange = targetRange;
+        this._globalState = globalState;
 
         this._panel.webview.html = this._getHtmlForWebview();
 
@@ -100,12 +108,38 @@ export class PromptCheckerPanel {
                 switch (message.command) {
                     case 'ready': {
                         // Webview DOM is loaded and event listeners are active!
+                        const cfg = this._getConfig();
+                        const hasCodex = !!vscode.extensions.getExtension('openai.chatgpt');
+                        const isAntigravity = /antigravity/i.test(vscode.env.appName || '');
+                        const savedChat = this._globalState?.get<'auto' | 'codex' | 'antigravity' | 'copilot'>('targetChat');
+                        let activeTarget: 'codex' | 'antigravity' | 'copilot' = 'codex';
+                        if (savedChat && savedChat !== 'auto') {
+                            activeTarget = savedChat;
+                        } else if (cfg.targetChat && cfg.targetChat !== 'auto') {
+                            activeTarget = cfg.targetChat;
+                        } else if (hasCodex) {
+                            activeTarget = 'codex';
+                        } else if (isAntigravity) {
+                            activeTarget = 'antigravity';
+                        } else {
+                            activeTarget = 'copilot';
+                        }
+
                         this._panel.webview.postMessage({
                             command: 'loadText',
                             text: this._currentText,
-                            hasEditorTarget: !!(this._targetEditor && this._targetRange)
+                            hasEditorTarget: !!(this._targetEditor && this._targetRange),
+                            hasCodex,
+                            isAntigravity,
+                            targetChat: activeTarget
                         });
                         this._analyzeAndSend(this._currentText);
+                        break;
+                    }
+                    case 'setTargetChat': {
+                        if (message.targetChat && this._globalState) {
+                            await this._globalState.update('targetChat', message.targetChat);
+                        }
                         break;
                     }
                     case 'checkText': {
@@ -196,9 +230,19 @@ export class PromptCheckerPanel {
                             await SelectionCapture.pasteToOS(30);
                             vscode.window.setStatusBarMessage(`✨ AI Fixed (${providerUsed}) & pasted in editor!`, 4000);
                         } else {
-                            // Focus the AI Chat box and paste the clean prompt
-                            await SelectionCapture.pasteToChat(30);
-                            vscode.window.setStatusBarMessage(`✨ AI Fixed (${providerUsed}) & pasted back into chat!`, 4000);
+                            // Focus the targeted AI Chat box (Codex, Antigravity, Copilot) and paste clean prompt
+                            const chosenChat = message.targetChat || 'auto';
+                            if (chosenChat && chosenChat !== 'auto' && this._globalState) {
+                                await this._globalState.update('targetChat', chosenChat);
+                            }
+                            const { chatUsed } = await SelectionCapture.pasteToChat(chosenChat, 30);
+                            const chatLabels: Record<string, string> = {
+                                codex: 'Codex',
+                                antigravity: 'Antigravity Chat',
+                                copilot: 'Copilot Chat'
+                            };
+                            const label = chatLabels[chatUsed] || 'Chat';
+                            vscode.window.setStatusBarMessage(`⚡ AI Fixed (${providerUsed}) & pasted back into ${label}!`, 4000);
                         }
                         break;
                     }
@@ -804,6 +848,43 @@ export class PromptCheckerPanel {
             font-weight: 600;
         }
 
+        .chat-target-group {
+            display: inline-flex;
+            align-items: stretch;
+            border-radius: 6px;
+        }
+
+        .chat-target-group .btn-primary {
+            border-top-right-radius: 0;
+            border-bottom-right-radius: 0;
+            border-right: none;
+        }
+
+        .target-chat-select {
+            background: var(--primary-bg, #007acc);
+            color: var(--primary-fg, #ffffff);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-left: 1px solid rgba(255, 255, 255, 0.3);
+            border-top-right-radius: 6px;
+            border-bottom-right-radius: 6px;
+            padding: 4px 6px;
+            font-family: inherit;
+            font-size: 11px;
+            font-weight: 500;
+            cursor: pointer;
+            outline: none;
+            transition: all 0.12s ease;
+        }
+
+        .target-chat-select:hover {
+            background: var(--primary-hover, #0062a3);
+        }
+
+        .target-chat-select option {
+            background: #252526;
+            color: #cccccc;
+        }
+
         .btn-primary:hover {
             background: var(--primary-hover);
             box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 2px 6px rgba(0, 0, 0, 0.25);
@@ -1161,14 +1242,21 @@ export class PromptCheckerPanel {
 
     <!-- ⚡ Action Buttons -->
     <div class="actions-bar">
-        <!-- Primary Action -->
-        <button id="btnFixAndPaste" class="btn btn-primary" title="Fix all typos and paste into AI chat (Ctrl+Shift+Enter)">
-            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
-            </svg>
-            <span id="btnFixAndPasteText">Fix &amp; Paste to Chat</span>
-            <kbd class="kbd kbd-light">Ctrl+Shift+↵</kbd>
-        </button>
+        <!-- Primary Action Group -->
+        <div class="chat-target-group" id="chatTargetGroup">
+            <button id="btnFixAndPaste" class="btn btn-primary" title="Fix all typos and paste (Ctrl+Shift+Enter)">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                </svg>
+                <span id="btnFixAndPasteText">Fix &amp; Paste to Chat</span>
+                <kbd class="kbd kbd-light">Ctrl+Shift+↵</kbd>
+            </button>
+            <select id="selectTargetChat" class="target-chat-select" title="Target AI Chat to paste into">
+                <option value="codex">Codex (OpenAI)</option>
+                <option value="antigravity">Antigravity</option>
+                <option value="copilot">Copilot / VS Code</option>
+            </select>
+        </div>
 
         <!-- Secondary Action: Auto-Fix inside box -->
         <button id="btnAiAutoFix" class="btn btn-secondary" title="Auto-fix all typos inside this editor">
@@ -1253,6 +1341,31 @@ export class PromptCheckerPanel {
         const statusText = document.getElementById('statusText');
         const statsPill = document.getElementById('statsPill');
         const btnFixAndPaste = document.getElementById('btnFixAndPaste');
+        const selectTargetChat = document.getElementById('selectTargetChat');
+        let currentTargetChat = 'codex';
+
+        function updateTargetChatUi(target) {
+            currentTargetChat = target || 'codex';
+            if (selectTargetChat) {
+                selectTargetChat.value = currentTargetChat;
+            }
+            const btnText = document.getElementById('btnFixAndPasteText');
+            if (btnText && (!btnReplaceEditor || btnReplaceEditor.style.display === 'none')) {
+                const name = currentTargetChat === 'codex' ? 'Codex' : (currentTargetChat === 'antigravity' ? 'Antigravity' : 'Copilot');
+                btnText.textContent = 'Fix & Paste to ' + name;
+                btnFixAndPaste.title = 'Fix all typos and paste into ' + name + ' (Ctrl+Shift+Enter)';
+            }
+        }
+
+        if (selectTargetChat) {
+            selectTargetChat.addEventListener('change', () => {
+                updateTargetChatUi(selectTargetChat.value);
+                vscode.postMessage({
+                    command: 'setTargetChat',
+                    targetChat: selectTargetChat.value
+                });
+            });
+        }
         const btnCopy = document.getElementById('btnCopy');
         const btnAiAutoFix = document.getElementById('btnAiAutoFix');
         const btnUndo = document.getElementById('btnUndo');
@@ -1680,9 +1793,11 @@ export class PromptCheckerPanel {
 
             vscode.postMessage({
                 command: 'fixAndPasteToChat',
-                text: text
+                text: text,
+                targetChat: currentTargetChat
             });
-            showToast('Fixing & pasting clean prompt into chat...', '⚡');
+            const chatTitle = currentTargetChat === 'codex' ? 'Codex' : (currentTargetChat === 'antigravity' ? 'Antigravity' : 'Copilot');
+            showToast('Fixing & pasting clean prompt into ' + chatTitle + '...', '⚡');
         });
 
         btnCopy.addEventListener('click', () => {
@@ -1762,14 +1877,16 @@ export class PromptCheckerPanel {
                 case 'loadText':
                     textarea.value = msg.text || '';
                     const btnText = document.getElementById('btnFixAndPasteText');
+                    const selectTarget = document.getElementById('selectTargetChat');
                     if (msg.hasEditorTarget) {
                         if (btnText) btnText.textContent = 'Fix & Replace in Editor';
                         btnFixAndPaste.title = 'Fix all typos and replace in editor (Ctrl+Shift+Enter)';
+                        if (selectTarget) selectTarget.style.display = 'none';
                         btnReplaceEditor.style.display = 'inline-flex';
                     } else {
-                        if (btnText) btnText.textContent = 'Fix & Paste to Chat';
-                        btnFixAndPaste.title = 'Fix all typos and paste into AI chat (Ctrl+Shift+Enter)';
+                        if (selectTarget) selectTarget.style.display = 'inline-block';
                         btnReplaceEditor.style.display = 'none';
+                        updateTargetChatUi(msg.targetChat || 'codex');
                     }
                     updateEmptyState();
                     updateStats();

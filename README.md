@@ -54,7 +54,7 @@ Standard spell checkers only scan open files in your workspace—they completely
 * **Code Shield™:** Never ruins code identifiers. Leaves `camelCase`, `snake_case`, inline backticks, API endpoints, and terminal flags untouched.
 * **Context-Aware:** Detects real words used in the wrong context (e.g., `loose connection` $\rightarrow$ `lose connection`).
 * **100% Local & Private:** Runs entirely on your local machine with zero external network requests. Your prompts and private code never leave your computer.
-* **Universal Editor Support:** Works across Copilot Chat, Cursor, Antigravity, Markdown files, and Git commit inputs.
+* **Universal Editor Support:** Works across OpenAI Codex, Copilot Chat, Antigravity, Cursor, Markdown files, and Git commit inputs.
 
 ---
 

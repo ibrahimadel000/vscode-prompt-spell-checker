@@ -176,15 +176,37 @@ export class SelectionCapture {
     }
 
     /**
-     * Pastes clipboard content directly into the Antigravity/AI Chat box by:
-     * 1) Focusing the chat input box via non-toggling IDE commands (workbench.action.chat.focusInput, antigravity)
-     * 2) Waiting briefly for DOM focus transition in the Lexical input
-     * 3) Selecting all in chat box (Ctrl+A) and pasting (Ctrl+V) to replace old prompt
+     * Resolves and focuses the desired AI Chat input (Codex, Antigravity, or Copilot).
      */
-    public static async pasteToChat(delayMs: number = 30): Promise<boolean> {
+    public static async focusChat(target: 'auto' | 'codex' | 'antigravity' | 'copilot' = 'auto'): Promise<'codex' | 'antigravity' | 'copilot'> {
+        const hasCodex = !!vscode.extensions.getExtension('openai.chatgpt');
         const isAntigravity = /antigravity/i.test(vscode.env.appName || '');
 
-        if (isAntigravity) {
+        let resolvedTarget = target;
+        if (resolvedTarget === 'auto') {
+            if (hasCodex) {
+                resolvedTarget = 'codex';
+            } else if (isAntigravity) {
+                resolvedTarget = 'antigravity';
+            } else {
+                resolvedTarget = 'copilot';
+            }
+        }
+
+        if (resolvedTarget === 'codex') {
+            // Focus OpenAI Codex Chat (opens sidebar and focuses input view)
+            try {
+                await vscode.commands.executeCommand('chatgpt.openSidebar');
+            } catch {}
+            try {
+                await vscode.commands.executeCommand('chatgpt.sidebarView.focus');
+            } catch {
+                try {
+                    await vscode.commands.executeCommand('chatgpt.sidebarSecondaryView.focus');
+                } catch {}
+            }
+        } else if (resolvedTarget === 'antigravity') {
+            // Focus Antigravity Chat
             try {
                 await vscode.commands.executeCommand('antigravity.toggleChatFocus');
             } catch {
@@ -193,23 +215,36 @@ export class SelectionCapture {
                 } catch {}
             }
         } else {
+            // Focus VS Code / Copilot Chat
             try {
                 await vscode.commands.executeCommand('workbench.action.chat.focusInput');
             } catch {
                 try {
-                    await vscode.commands.executeCommand('antigravity.toggleChatFocus');
-                } catch {
-                    try {
-                        await vscode.commands.executeCommand('workbench.action.chat.open');
-                    } catch {}
-                }
+                    await vscode.commands.executeCommand('workbench.action.chat.open');
+                } catch {}
             }
         }
 
-        // Wait 200ms for the chat input box (Lexical editor in webview iframe) to settle full DOM focus
-        await new Promise((r) => setTimeout(r, 200));
+        return resolvedTarget;
+    }
+
+    /**
+     * Pastes clipboard content directly into the targeted AI Chat box (Codex, Antigravity, Copilot) by:
+     * 1) Focusing the specific chat input box
+     * 2) Waiting briefly for DOM focus transition
+     * 3) Selecting all in chat box (Ctrl+A) and pasting (Ctrl+V) to replace old prompt
+     */
+    public static async pasteToChat(
+        targetChat: 'auto' | 'codex' | 'antigravity' | 'copilot' = 'auto',
+        delayMs: number = 30
+    ): Promise<{ success: boolean; chatUsed: 'codex' | 'antigravity' | 'copilot' }> {
+        const chatUsed = await SelectionCapture.focusChat(targetChat);
+
+        // Wait 220ms for the chat input box (textarea/Lexical editor in webview iframe) to settle full DOM focus
+        await new Promise((r) => setTimeout(r, 220));
 
         // Now simulate OS-level Ctrl+A + Ctrl+V to cleanly replace the prompt
-        return SelectionCapture.pasteToOS(delayMs, true);
+        const success = await SelectionCapture.pasteToOS(delayMs, true);
+        return { success, chatUsed };
     }
 }
