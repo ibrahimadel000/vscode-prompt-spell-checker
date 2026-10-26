@@ -4,7 +4,7 @@
 
 # AI Chat Spell Assistant
 
-### Official Visual Studio Code Extension
+### Stop burning tokens on broken prompts.
 
 [![VS Code Extension](https://img.shields.io/badge/VS_Code-Extension-007ACC?style=for-the-badge&logo=visual-studio-code&logoColor=white)](https://marketplace.visualstudio.com/items?itemName=ibrahim-adel.ai-chat-spell-assistant)
 [![Open VSX](https://img.shields.io/badge/Open%20VSX-Compatible-purple?style=for-the-badge)](https://open-vsx.org/)
@@ -13,12 +13,12 @@
 
 <br />
 
-**Fix typos, grammar, and context slips directly inside your VS Code AI chat inputs—without breaking code syntax, variables, or functions.**
+**Code-safe spell check for Antigravity, Codex, Claude & Copilot—fixing typos before hitting Enter without breaking variables, functions, or syntax.**
 
 </div>
 
 > [!IMPORTANT]
-> **⚡ Ensure you have the latest update (`v0.5.9+`)**: To enable 100% pure AI Language Model (GitHub Copilot) proofreading with full context understanding, make sure you are running the latest version! Open your Extensions tab (<kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>X</kbd>) and click **Update** if prompted.
+> **Stay Updated**: Ensure you are running the latest release to take full advantage of AI-powered contextual proofreading.
 
 ---
 
@@ -34,8 +34,8 @@ Standard spell checkers only scan open files in your workspace—they completely
 
 | Shortcut | Mode | Behavior |
 | :---: | :--- | :--- |
-| <kbd>Alt + W</kbd> | **Instant Auto-Fix** | **Zero UI.** Automatically captures text from the active chat box, fixes mistakes, and pastes clean text back in place. |
-| <kbd>Alt + Q</kbd> | **Interactive Inspector** | Opens a side-by-side review panel with squiggly highlights and one-click replacement chips. |
+| <nobr><kbd>Alt</kbd>&nbsp;+&nbsp;<kbd>W</kbd></nobr> | **Instant Auto-Fix** | **Zero UI.** Automatically captures text from the active chat box, fixes mistakes, and pastes clean text back in place. |
+| <nobr><kbd>Alt</kbd>&nbsp;+&nbsp;<kbd>Q</kbd></nobr> | **Interactive Inspector** | Opens a side-by-side review panel with squiggly highlights and one-click replacement chips. |
 
 ---
 
@@ -51,10 +51,10 @@ Standard spell checkers only scan open files in your workspace—they completely
 
 ## ✨ Key Highlights
 
-* **Code Shield™:** Never ruins code identifiers. Leaves `camelCase`, `snake_case`, inline backticks, API endpoints, and terminal flags untouched.
-* **Context-Aware:** Detects real words used in the wrong context (e.g., `loose connection` $\rightarrow$ `lose connection`).
-* **100% Local & Private:** Runs entirely on your local machine with zero external network requests. Your prompts and private code never leave your computer.
-* **Universal Editor Support:** Works across OpenAI Codex, Copilot Chat, Antigravity, Cursor, Markdown files, and Git commit inputs.
+- **Code Shield™:** Never ruins code identifiers. Leaves `camelCase`, `snake_case`, inline backticks, API endpoints, and terminal flags untouched.
+- **Context-Aware:** Detects real words used in the wrong context (e.g., `loose connection` → `lose connection`).
+- **100% Local & Private:** Runs entirely on your local machine with zero external network requests. Your prompts and private code never leave your computer.
+- **Universal Editor Support:** Works across Copilot Chat, Cursor, Antigravity, Markdown files, and Git commit inputs.
 
 ---
 
@@ -71,8 +71,8 @@ Standard spell checkers only scan open files in your workspace—they completely
 
 If you encounter any issues, have an idea for improvement, or need assistance, feel free to text or email me directly:
 
-* 📧 **Direct Email**: [ibrahimalsharjabi69@gmail.com](mailto:ibrahimalsharjabi69@gmail.com?subject=AI%20Chat%20Spell%20Assistant%20Feedback%20%2F%20Issue)
-* 🐛 **Report a Bug**: [Open an issue on GitHub](https://github.com/ibrahimadel000/vscode-prompt-spell-checker/issues/new)
+- 📧 **Direct Email**: [ibrahimalsharjabi69@gmail.com](mailto:ibrahimalsharjabi69@gmail.com?subject=AI%20Chat%20Spell%20Assistant%20Feedback%20%2F%20Issue)
+- 🐛 **Report a Bug**: [Open an issue on GitHub](https://github.com/ibrahimadel000/vscode-prompt-spell-checker/issues/new)
 
 I check messages regularly and respond promptly to help resolve any issues!
 
