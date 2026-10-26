@@ -2,7 +2,7 @@
   "name": "ai-chat-spell-assistant",
   "displayName": "AI Chat Spell Assistant",
   "description": "Intelligent spell & prompt corrector for AI coding assistant chats (Copilot, Claude, ChatGPT, Antigravity). Instant auto-fix & interactive review.",
-  "version": "0.6.2",
+  "version": "0.6.3",
   "publisher": "ibrahim-adel",
   "icon": "assets/icon.png",
   "license": "MIT",
@@ -118,11 +118,75 @@
     "keybindings": [
       {
         "command": "spellAssistant.quickFixWord",
+        "key": "alt+q",
+        "when": "antigravity.agentSidePanel.isFocused || antigravity.isAgentModeInputBoxFocused || antigravity.isInAgentModeView || antigravity.agentBarVisible || focusedView == 'antigravity.agentSidePanel' || focusedView == 'antigravity.agentPanel'",
+        "args": {
+          "origin": "antigravity"
+        }
+      },
+      {
+        "command": "spellAssistant.quickFixWord",
+        "key": "alt+q",
+        "when": "focusedView == 'chatgpt.sidebarView' || focusedView == 'chatgpt.sidebarSecondaryView' || webviewId == 'chatgpt.sidebarView' || webviewId == 'chatgpt.sidebarSecondaryView' || sideBarFocus && chatgpt.sidebarView.visible || auxiliaryBarFocus && chatgpt.sidebarSecondaryView.visible || chatSessionType == 'openai-codex'",
+        "args": {
+          "origin": "codex"
+        }
+      },
+      {
+        "command": "spellAssistant.quickFixWord",
+        "key": "alt+q",
+        "when": "inChat || chatInputHasFocus || chatFocus || focusedView == 'workbench.panel.chat.view.copilot' || focusedView == 'workbench.panel.chat'",
+        "args": {
+          "origin": "copilot"
+        }
+      },
+      {
+        "command": "spellAssistant.quickFixWord",
+        "key": "alt+q",
+        "when": "editorTextFocus",
+        "args": {
+          "origin": "editor"
+        }
+      },
+      {
+        "command": "spellAssistant.quickFixWord",
         "key": "alt+q"
       },
       {
         "command": "spellAssistant.openPromptChecker",
+        "key": "ctrl+alt+s",
+        "when": "antigravity.agentSidePanel.isFocused || antigravity.isAgentModeInputBoxFocused || antigravity.isInAgentModeView || antigravity.agentBarVisible || focusedView == 'antigravity.agentSidePanel' || focusedView == 'antigravity.agentPanel'",
+        "args": {
+          "origin": "antigravity"
+        }
+      },
+      {
+        "command": "spellAssistant.openPromptChecker",
+        "key": "ctrl+alt+s",
+        "when": "focusedView == 'chatgpt.sidebarView' || focusedView == 'chatgpt.sidebarSecondaryView' || webviewId == 'chatgpt.sidebarView' || webviewId == 'chatgpt.sidebarSecondaryView' || sideBarFocus && chatgpt.sidebarView.visible || auxiliaryBarFocus && chatgpt.sidebarSecondaryView.visible || chatSessionType == 'openai-codex'",
+        "args": {
+          "origin": "codex"
+        }
+      },
+      {
+        "command": "spellAssistant.openPromptChecker",
         "key": "ctrl+alt+s"
+      },
+      {
+        "command": "spellAssistant.openPromptChecker",
+        "key": "shift+alt+q",
+        "when": "antigravity.agentSidePanel.isFocused || antigravity.isAgentModeInputBoxFocused || antigravity.isInAgentModeView || antigravity.agentBarVisible || focusedView == 'antigravity.agentSidePanel' || focusedView == 'antigravity.agentPanel'",
+        "args": {
+          "origin": "antigravity"
+        }
+      },
+      {
+        "command": "spellAssistant.openPromptChecker",
+        "key": "shift+alt+q",
+        "when": "focusedView == 'chatgpt.sidebarView' || focusedView == 'chatgpt.sidebarSecondaryView' || webviewId == 'chatgpt.sidebarView' || webviewId == 'chatgpt.sidebarSecondaryView' || sideBarFocus && chatgpt.sidebarView.visible || auxiliaryBarFocus && chatgpt.sidebarSecondaryView.visible || chatSessionType == 'openai-codex'",
+        "args": {
+          "origin": "codex"
+        }
       },
       {
         "command": "spellAssistant.openPromptChecker",

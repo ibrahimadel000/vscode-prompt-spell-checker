@@ -174,7 +174,7 @@ export async function activate(context: vscode.ExtensionContext) {
     }
 
     // 💡 Alt+Q: Select text → open Prompt Checker panel with it directly
-    const quickFixWord = async () => {
+    const quickFixWord = async (args?: { origin?: string }) => {
         const editor = vscode.window.activeTextEditor;
         const target = await getTargetTextAndRange(editor);
 
@@ -187,7 +187,8 @@ export async function activate(context: vscode.ExtensionContext) {
             aiProofreader,
             target.text || '',
             target.targetEditor,
-            target.targetRange
+            target.targetRange,
+            args?.origin
         );
     };
 
@@ -196,7 +197,7 @@ export async function activate(context: vscode.ExtensionContext) {
     );
 
     // 🚀 Open AI Prompt Spell Checker (Interactive Text Box with Misspellings & Direct Copy)
-    const openPromptChecker = async () => {
+    const openPromptChecker = async (args?: { origin?: string }) => {
         const editor = vscode.window.activeTextEditor;
         const target = await getTargetTextAndRange(editor);
 
@@ -208,7 +209,8 @@ export async function activate(context: vscode.ExtensionContext) {
             aiProofreader,
             target.text,
             target.targetEditor,
-            target.targetRange
+            target.targetRange,
+            args?.origin
         );
     };
 
@@ -291,13 +293,13 @@ export async function activate(context: vscode.ExtensionContext) {
 
     // Alt+Q: Scan document or open prompt checker
     context.subscriptions.push(
-        vscode.commands.registerCommand('spellAssistant.scanDocument', () => {
+        vscode.commands.registerCommand('spellAssistant.scanDocument', (args?: { origin?: string }) => {
             const editor = vscode.window.activeTextEditor;
             if (editor) {
                 diagnosticsProvider.checkDocument(editor.document, getConfig());
                 vscode.window.showInformationMessage('Spell check complete.');
             } else {
-                openPromptChecker();
+                openPromptChecker(args);
             }
         })
     );

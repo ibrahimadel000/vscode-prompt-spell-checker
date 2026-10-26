@@ -182,16 +182,26 @@ export class SelectionCapture {
      * 3) Otherwise, focuses standard VS Code / Copilot Chat
      * 4) Simulates Ctrl+A + Ctrl+V to cleanly replace the old prompt line in the chat box
      */
-    public static async pasteToChat(delayMs: number = 30): Promise<boolean> {
+    public static async pasteToChat(origin?: string, delayMs: number = 30): Promise<boolean> {
         try {
-            const allCommands = await vscode.commands.getCommands(true);
-            const hasCodex = allCommands.includes('chatgpt.openSidebar') || 
-                             allCommands.includes('chatgpt.sidebarView.focus') ||
-                             vscode.extensions.all.some(e => e.id.toLowerCase().includes('chatgpt') || e.id.toLowerCase().includes('codex'));
-
             const isAntigravity = /antigravity/i.test(vscode.env.appName || '');
+            let target = origin;
 
-            if (hasCodex) {
+            if (!target) {
+                // If origin wasn't explicitly captured from when-clause, default safely based on IDE environment
+                if (isAntigravity) {
+                    target = 'antigravity';
+                } else {
+                    const allCommands = await vscode.commands.getCommands(true);
+                    if (allCommands.includes('chatgpt.openSidebar') || allCommands.includes('chatgpt.sidebarView.focus')) {
+                        target = 'codex';
+                    } else {
+                        target = 'copilot';
+                    }
+                }
+            }
+
+            if (target === 'codex') {
                 // Focus OpenAI Codex Chat
                 try {
                     await vscode.commands.executeCommand('chatgpt.openSidebar');
@@ -203,8 +213,11 @@ export class SelectionCapture {
                         await vscode.commands.executeCommand('chatgpt.sidebarSecondaryView.focus');
                     } catch {}
                 }
-            } else if (isAntigravity) {
+            } else if (target === 'antigravity') {
                 // Focus Antigravity Chat
+                try {
+                    await vscode.commands.executeCommand('antigravity.openChatView');
+                } catch {}
                 try {
                     await vscode.commands.executeCommand('antigravity.toggleChatFocus');
                 } catch {

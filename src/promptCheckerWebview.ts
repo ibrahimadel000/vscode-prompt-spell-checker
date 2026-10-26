@@ -21,6 +21,7 @@ export class PromptCheckerPanel {
     private _currentText: string = '';
     private _targetEditor: vscode.TextEditor | undefined;
     private _targetRange: vscode.Range | undefined;
+    private _origin: string | undefined;
 
     public static createOrShow(
         extensionUri: vscode.Uri,
@@ -30,7 +31,8 @@ export class PromptCheckerPanel {
         aiProofreader?: AIProofreader,
         initialText?: string,
         targetEditor?: vscode.TextEditor,
-        targetRange?: vscode.Range
+        targetRange?: vscode.Range,
+        origin?: string
     ) {
         const column = vscode.ViewColumn.Beside;
 
@@ -39,9 +41,12 @@ export class PromptCheckerPanel {
             if (aiProofreader) {
                 PromptCheckerPanel.currentPanel._aiProofreader = aiProofreader;
             }
+            if (origin) {
+                PromptCheckerPanel.currentPanel._origin = origin;
+            }
             // Update the text when non-empty text is selected
             if (initialText !== undefined && initialText.trim() !== '') {
-                PromptCheckerPanel.currentPanel.setText(initialText, targetEditor, targetRange);
+                PromptCheckerPanel.currentPanel.setText(initialText, targetEditor, targetRange, origin);
             }
             return;
         }
@@ -67,6 +72,7 @@ export class PromptCheckerPanel {
             initialText ?? '',
             targetEditor,
             targetRange,
+            origin
         );
     }
 
@@ -79,7 +85,8 @@ export class PromptCheckerPanel {
         aiProofreader: AIProofreader | undefined,
         initialText: string,
         targetEditor?: vscode.TextEditor,
-        targetRange?: vscode.Range
+        targetRange?: vscode.Range,
+        origin?: string
     ) {
         this._panel = panel;
         this._extensionUri = extensionUri;
@@ -90,6 +97,7 @@ export class PromptCheckerPanel {
         this._currentText = initialText;
         this._targetEditor = targetEditor;
         this._targetRange = targetRange;
+        this._origin = origin;
 
         this._panel.webview.html = this._getHtmlForWebview();
 
@@ -196,8 +204,8 @@ export class PromptCheckerPanel {
                             await SelectionCapture.pasteToOS(30);
                             vscode.window.setStatusBarMessage(`✨ AI Fixed (${providerUsed}) & pasted in editor!`, 4000);
                         } else {
-                            // Automatically paste into the chat where text was selected from (Codex if present, else Antigravity / Copilot)
-                            await SelectionCapture.pasteToChat(30);
+                            // Automatically paste into the chat where text was selected from (Codex, Antigravity, or Copilot)
+                            await SelectionCapture.pasteToChat(this._origin, 30);
                             vscode.window.setStatusBarMessage(`⚡ AI Fixed (${providerUsed}) & pasted back into chat!`, 4000);
                         }
                         break;
@@ -285,10 +293,13 @@ export class PromptCheckerPanel {
         );
     }
 
-    public setText(text: string, targetEditor?: vscode.TextEditor, targetRange?: vscode.Range) {
+    public setText(text: string, targetEditor?: vscode.TextEditor, targetRange?: vscode.Range, origin?: string) {
         this._currentText = text;
         this._targetEditor = targetEditor;
         this._targetRange = targetRange;
+        if (origin) {
+            this._origin = origin;
+        }
         this._panel.webview.postMessage({
             command: 'loadText',
             text: this._currentText,
