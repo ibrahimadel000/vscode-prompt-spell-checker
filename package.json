@@ -2,7 +2,7 @@
   "name": "ai-chat-spell-assistant",
   "displayName": "AI Chat Spell Assistant",
   "description": "Intelligent spell & prompt corrector for AI coding assistant chats (Copilot, Claude, ChatGPT, Antigravity). Instant auto-fix & interactive review.",
-  "version": "0.5.6",
+  "version": "0.5.8",
   "publisher": "ibrahim-adel",
   "icon": "assets/icon.png",
   "license": "MIT",
@@ -217,7 +217,9 @@
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "test": "npm run compile && node test/benchmark.test.js",
-    "package": "npx @vscode/vsce package"
+    "package": "npx @vscode/vsce package",
+    "publish:marketplace": "npx @vscode/vsce publish",
+    "publish:ovsx": "npx ovsx publish"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
