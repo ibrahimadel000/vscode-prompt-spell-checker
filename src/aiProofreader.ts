@@ -44,58 +44,62 @@ export class AIProofreader {
             };
         }
 
-        // 🌟 STEP 1: Always apply Tier 1 Google-Grade Local Engine FIRST (0ms, Instant, Rock-Solid)
-        // Resolves all contractions, collocations (plea tanned -> play tennis), Metaphone sound-alikes,
-        // and coding typos while safeguarding camelCase/snake_case/code identifiers.
-        const localResult = this._proofreadLocalFallback(text);
-        let candidateText = localResult.fixedText;
-        let providerUsed = 'Local Offline Engine';
+        // If explicitly configured for local offline engine, skip all APIs
+        if (cfg.enabled === false || cfg.provider === 'local-fallback') {
+            const localResult = this._proofreadLocalFallback(text);
+            return {
+                ...localResult,
+                durationMs: Date.now() - start
+            };
+        }
 
-        // 🌟 STEP 2: Optional Tier 2 AI Proofreading refinement (if requested or configured)
-        // 1. VS Code native Language Model (vscode.lm)
+        let apiResult: Omit<ProofreadResult, 'durationMs'> | null = null;
+
+        // 🌟 1. Primary: VS Code native Language Model (Copilot / vscode.lm)
         if (cfg.provider === 'vscode-lm' || (cfg.provider === 'auto' && this._hasVsCodeLm())) {
             try {
-                const lmResult = await this._proofreadWithVsCodeLm(candidateText, token);
-                if (lmResult && lmResult.fixedText && this._isValidProofreadResult(candidateText, lmResult.fixedText)) {
-                    candidateText = lmResult.fixedText.trim();
-                    providerUsed = lmResult.providerUsed;
-                }
+                // Send RAW original text directly to AI for full context & intent
+                apiResult = await this._proofreadWithVsCodeLm(text, token);
             } catch (err) {
                 console.warn('[AIProofreader] vscode.lm error or unavailable:', err);
             }
         }
-        // 2. Custom LLM if configured
+        // 🌟 2. Custom LLM endpoint if configured (Ollama, Groq, OpenAI)
         else if (cfg.provider === 'custom-llm' && cfg.customEndpoint) {
             try {
-                const customResult = await this._proofreadWithCustomLlm(candidateText, cfg, token);
-                if (customResult && customResult.fixedText && this._isValidProofreadResult(candidateText, customResult.fixedText)) {
-                    candidateText = customResult.fixedText.trim();
-                    providerUsed = customResult.providerUsed;
-                }
+                apiResult = await this._proofreadWithCustomLlm(text, cfg, token);
             } catch (err) {
                 console.warn('[AIProofreader] Custom LLM error:', err);
             }
         }
-        // 3. LanguageTool API ONLY if explicitly selected by the user
+        // 🌟 3. LanguageTool REST API if selected
         else if (cfg.provider === 'languagetool') {
             try {
-                const ltResult = await this._proofreadWithLanguageTool(candidateText, cfg.languageToolEndpoint);
-                if (ltResult && ltResult.fixedText && this._isValidProofreadResult(candidateText, ltResult.fixedText)) {
-                    candidateText = ltResult.fixedText.trim();
-                    providerUsed = ltResult.providerUsed;
-                }
+                apiResult = await this._proofreadWithLanguageTool(text, cfg.languageToolEndpoint);
             } catch (err) {
                 console.warn('[AIProofreader] LanguageTool error:', err);
             }
         }
 
-        const allChanges = this._computeWordChanges(text, candidateText, 'AI Predictive Speller');
+        // If the AI API succeeded with valid corrections, return it directly!
+        if (apiResult && apiResult.fixedText && this._isValidProofreadResult(text, apiResult.fixedText)) {
+            const allChanges = this._computeWordChanges(text, apiResult.fixedText, 'AI Language Model');
+            return {
+                originalText: text,
+                fixedText: apiResult.fixedText,
+                changes: allChanges.length > 0 ? allChanges : apiResult.changes,
+                providerUsed: apiResult.providerUsed,
+                durationMs: Date.now() - start
+            };
+        }
 
+        // Fallback ONLY when API failed or permission was explicitly cancelled
+        const fallbackResult = this._proofreadLocalFallback(text);
         return {
-            originalText: text,
-            fixedText: candidateText,
-            changes: allChanges.length > 0 ? allChanges : localResult.changes,
-            providerUsed: providerUsed,
+            ...fallbackResult,
+            providerUsed: cfg.provider === 'auto' 
+                ? 'Local Offline Engine (Copilot unavailable)' 
+                : `Offline Fallback (${cfg.provider} failed)`,
             durationMs: Date.now() - start
         };
     }
@@ -117,10 +121,23 @@ export class AIProofreader {
             return null;
         }
 
-        const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 2500));
+        // 45-second generous generation timeout (never rushing user permission prompt)
+        const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 45000));
+
         const runLm = async (): Promise<Omit<ProofreadResult, 'durationMs'> | null> => {
             try {
-                const models = await vscodeAny.lm.selectChatModels();
+                let models: any[] = [];
+                // Prefer GPT-4o if available in Copilot
+                try {
+                    models = await vscodeAny.lm.selectChatModels({ family: 'gpt-4o' });
+                } catch {
+                    models = [];
+                }
+
+                if (!models || models.length === 0) {
+                    models = await vscodeAny.lm.selectChatModels();
+                }
+
                 if (!models || models.length === 0) {
                     return null;
                 }
@@ -155,14 +172,15 @@ export class AIProofreader {
 
                 if (!fixedText) return null;
 
-                const changes = this._computeWordChanges(text, fixedText, 'AI Predictive Speller');
+                const changes = this._computeWordChanges(text, fixedText, 'AI Language Model');
                 return {
                     originalText: text,
                     fixedText: fixedText,
                     changes: changes,
-                    providerUsed: `vscode.lm (${model.name || model.id || 'native'})`
+                    providerUsed: `Copilot AI (${model.name || model.id || 'native'})`
                 };
-            } catch {
+            } catch (err) {
+                console.warn('[AIProofreader] LM execution error:', err);
                 return null;
             }
         };
@@ -241,7 +259,7 @@ export class AIProofreader {
         if (!config.customEndpoint) return null;
 
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 6000);
+        const timeout = setTimeout(() => controller.abort(), 45000);
 
         if (token) {
             token.onCancellationRequested(() => controller.abort());

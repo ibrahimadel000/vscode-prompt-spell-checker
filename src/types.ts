@@ -26,7 +26,7 @@ export interface ProofreadResult {
 
 export interface AIProofreaderConfig {
     enabled: boolean;
-    provider: 'auto' | 'vscode-lm' | 'languagetool' | 'custom-llm';
+    provider: 'auto' | 'vscode-lm' | 'languagetool' | 'custom-llm' | 'local-fallback';
     customEndpoint?: string;
     customApiKey?: string;
     customModel?: string;
