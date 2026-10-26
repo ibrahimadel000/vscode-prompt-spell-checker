@@ -17,6 +17,9 @@
 
 </div>
 
+> [!IMPORTANT]
+> **⚡ Ensure you have the latest update (`v0.5.9+`)**: To enable 100% pure AI Language Model (GitHub Copilot) proofreading with full context understanding, make sure you are running the latest version! Open your Extensions tab (<kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>X</kbd>) and click **Update** if prompted.
+
 ---
 
 ## What It Does
@@ -61,6 +64,17 @@ Standard spell checkers only scan open files in your workspace—they completely
 2. Go to the Extensions panel (`Ctrl+Shift+X` or `Cmd+Shift+X`).
 3. Search for **`AI Chat Spell Assistant`** and click **Install**.
 4. In any chat input, type your prompt and press <nobr><kbd>Alt</kbd>&nbsp;+&nbsp;<kbd>W</kbd></nobr>.
+
+---
+
+## 💬 Need Help or Have Feedback? Message Me!
+
+If you encounter any issues, have an idea for improvement, or need assistance, feel free to text or email me directly:
+
+* 📧 **Direct Email**: [ibrahimalsharjabi69@gmail.com](mailto:ibrahimalsharjabi69@gmail.com?subject=AI%20Chat%20Spell%20Assistant%20Feedback%20%2F%20Issue)
+* 🐛 **Report a Bug**: [Open an issue on GitHub](https://github.com/ibrahimadel000/vscode-prompt-spell-checker/issues/new)
+
+I check messages regularly and respond promptly to help resolve any issues!
 
 ---
 

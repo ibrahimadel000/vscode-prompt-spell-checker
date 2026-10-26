@@ -280,6 +280,15 @@ export async function activate(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand('spellAssistant.aiProofread', quickFixAndCopy)
     );
 
+    // 💬 Contact Developer / Report Issue command
+    context.subscriptions.push(
+        vscode.commands.registerCommand('spellAssistant.contactDeveloper', () => {
+            vscode.env.openExternal(
+                vscode.Uri.parse('mailto:ibrahimalsharjabi69@gmail.com?subject=AI%20Chat%20Spell%20Assistant%20Feedback%20%2F%20Issue')
+            );
+        })
+    );
+
     // Alt+Q: Scan document or open prompt checker
     context.subscriptions.push(
         vscode.commands.registerCommand('spellAssistant.scanDocument', () => {
