@@ -1,3 +1,5 @@
+import * as path from 'path';
+import * as fs from 'fs';
 // 🧩 Extension Entry Point 🧩
 // Activates the AI Chat Spell Assistant extension.
 
@@ -173,10 +175,42 @@ export async function activate(context: vscode.ExtensionContext) {
         };
     }
 
+
+function detectActiveChatOrigin(storageUri?: vscode.Uri): 'codex' | 'antigravity' | 'copilot' | undefined {
+    if (!storageUri) return undefined;
+    try {
+        const dbPath = path.join(storageUri.fsPath, '..', 'state.vscdb');
+        if (!fs.existsSync(dbPath)) return undefined;
+
+        try {
+            const { DatabaseSync } = require('node:sqlite');
+            const db = new DatabaseSync(dbPath, { readOnly: true });
+            const row = db.prepare("SELECT value FROM ItemTable WHERE key = 'workbench.auxiliarybar.activepanelid'").get();
+            if (row && typeof row.value === 'string') {
+                const val = row.value.toLowerCase();
+                if (val.includes('codex')) return 'codex';
+                if (val.includes('antigravity')) return 'antigravity';
+                if (val.includes('chat')) return 'copilot';
+            }
+        } catch {}
+
+        const buf = fs.readFileSync(dbPath);
+        const marker = Buffer.from('workbench.auxiliarybar.activepanelid');
+        const idx = buf.lastIndexOf(marker);
+        if (idx !== -1) {
+            const snippet = buf.subarray(idx, idx + 100).toString('utf8').toLowerCase();
+            if (snippet.includes('codex')) return 'codex';
+            if (snippet.includes('antigravity')) return 'antigravity';
+        }
+    } catch (e) {}
+    return undefined;
+}
+
     // 💡 Alt+Q: Select text → open Prompt Checker panel with it directly
     const quickFixWord = async (args?: { origin?: string }) => {
         const editor = vscode.window.activeTextEditor;
         const target = await getTargetTextAndRange(editor);
+        const origin = args?.origin || detectActiveChatOrigin(context.storageUri);
 
         // Open the Prompt Checker panel with the selected text (or empty if nothing selected)
         PromptCheckerPanel.createOrShow(
@@ -188,7 +222,7 @@ export async function activate(context: vscode.ExtensionContext) {
             target.text || '',
             target.targetEditor,
             target.targetRange,
-            args?.origin
+            origin
         );
     };
 
@@ -200,6 +234,7 @@ export async function activate(context: vscode.ExtensionContext) {
     const openPromptChecker = async (args?: { origin?: string }) => {
         const editor = vscode.window.activeTextEditor;
         const target = await getTargetTextAndRange(editor);
+        const origin = args?.origin || detectActiveChatOrigin(context.storageUri);
 
         PromptCheckerPanel.createOrShow(
             context.extensionUri,
@@ -210,7 +245,7 @@ export async function activate(context: vscode.ExtensionContext) {
             target.text,
             target.targetEditor,
             target.targetRange,
-            args?.origin
+            origin
         );
     };
 

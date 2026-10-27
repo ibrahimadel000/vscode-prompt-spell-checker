@@ -188,16 +188,14 @@ export class SelectionCapture {
             let target = origin;
 
             if (!target) {
-                // If origin wasn't explicitly captured from when-clause, default safely based on IDE environment
-                if (isAntigravity) {
+                const allCommands = await vscode.commands.getCommands(true);
+                const hasCodex = allCommands.includes('chatgpt.openSidebar') || allCommands.includes('chatgpt.sidebarView.focus');
+                if (hasCodex && !isAntigravity) {
+                    target = 'codex';
+                } else if (isAntigravity) {
                     target = 'antigravity';
                 } else {
-                    const allCommands = await vscode.commands.getCommands(true);
-                    if (allCommands.includes('chatgpt.openSidebar') || allCommands.includes('chatgpt.sidebarView.focus')) {
-                        target = 'codex';
-                    } else {
-                        target = 'copilot';
-                    }
+                    target = 'copilot';
                 }
             }
 
@@ -207,10 +205,13 @@ export class SelectionCapture {
                     await vscode.commands.executeCommand('chatgpt.openSidebar');
                 } catch {}
                 try {
-                    await vscode.commands.executeCommand('chatgpt.sidebarView.focus');
+                    await vscode.commands.executeCommand('workbench.view.extension.codexSecondaryViewContainer');
+                } catch {}
+                try {
+                    await vscode.commands.executeCommand('chatgpt.sidebarSecondaryView.focus');
                 } catch {
                     try {
-                        await vscode.commands.executeCommand('chatgpt.sidebarSecondaryView.focus');
+                        await vscode.commands.executeCommand('chatgpt.sidebarView.focus');
                     } catch {}
                 }
             } else if (target === 'antigravity') {
