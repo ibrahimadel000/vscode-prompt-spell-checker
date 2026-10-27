@@ -188,11 +188,7 @@ export class SelectionCapture {
             let target = origin;
 
             if (!target) {
-                const allCommands = await vscode.commands.getCommands(true);
-                const hasCodex = allCommands.includes('chatgpt.openSidebar') || allCommands.includes('chatgpt.sidebarView.focus');
-                if (hasCodex && !isAntigravity) {
-                    target = 'codex';
-                } else if (isAntigravity) {
+                if (isAntigravity) {
                     target = 'antigravity';
                 } else {
                     target = 'copilot';
@@ -227,13 +223,17 @@ export class SelectionCapture {
                     } catch {}
                 }
             } else {
-                // Focus VS Code / Copilot Chat
+                // Focus VS Code / GitHub Copilot Chat
                 try {
                     await vscode.commands.executeCommand('workbench.action.chat.focusInput');
                 } catch {
                     try {
-                        await vscode.commands.executeCommand('workbench.action.chat.open');
-                    } catch {}
+                        await vscode.commands.executeCommand('workbench.panel.chat.view.copilot.focus');
+                    } catch {
+                        try {
+                            await vscode.commands.executeCommand('workbench.action.chat.open');
+                        } catch {}
+                    }
                 }
             }
         } catch (e) {

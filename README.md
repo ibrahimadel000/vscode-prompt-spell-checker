@@ -34,8 +34,8 @@ Standard spell checkers only scan open files in your workspace—they completely
 
 | Keyboard Shortcut | Mode | Behavior |
 | :---: | :--- | :--- |
-| <kbd>Alt&nbsp;+&nbsp;W</kbd> | **Instant Auto-Fix** | **Zero UI.** Automatically captures text from the active chat box, fixes mistakes, and pastes clean text back in place. |
-| <kbd>Alt&nbsp;+&nbsp;Q</kbd> | **Interactive Inspector** | Opens a side-by-side review panel with squiggly highlights and one-click replacement chips. |
+| <kbd>Alt&nbsp;+&nbsp;W</kbd> | **Instant Auto-Fix** | **Zero UI.** Select any prompt or text in your chat box and press <kbd>Alt</kbd>&nbsp;+&nbsp;<kbd>W</kbd> — it fixes all typos & grammar and replaces your selection in-place. |
+| <kbd>Alt&nbsp;+&nbsp;Q</kbd> | **Interactive Inspector** | Select text and press <kbd>Alt</kbd>&nbsp;+&nbsp;<kbd>Q</kbd> to open the review panel with squiggly highlights, token metrics, and one-click replacement chips. |
 
 ---
 
@@ -63,7 +63,7 @@ Standard spell checkers only scan open files in your workspace—they completely
 1. Open **VS Code** (or **Antigravity IDE**).
 2. Go to the Extensions panel (`Ctrl+Shift+X` or `Cmd+Shift+X`).
 3. Search for **`AI Chat Spell Assistant`** and click **Install**.
-4. In any chat input, type your prompt and press <kbd>Alt&nbsp;+&nbsp;W</kbd>.
+4. In any chat input, select your prompt text and press <kbd>Alt&nbsp;+&nbsp;W</kbd>.
 
 ---
 

@@ -2,7 +2,7 @@
   "name": "ai-chat-spell-assistant",
   "displayName": "AI Chat Spell Assistant",
   "description": "Intelligent spell & prompt corrector for AI coding assistant chats (Copilot, Claude, ChatGPT, Antigravity). Instant auto-fix & interactive review.",
-  "version": "0.6.5",
+  "version": "0.6.6",
   "publisher": "ibrahim-adel",
   "icon": "assets/icon.png",
   "license": "MIT",
@@ -119,15 +119,15 @@
       {
         "command": "spellAssistant.quickFixWord",
         "key": "alt+q",
-        "when": "activeAuxiliary == 'workbench.view.extension.codexSecondaryViewContainer' || activeViewlet == 'workbench.view.extension.codexViewContainer' || webviewId == 'chatgpt.sidebarSecondaryView' || webviewId == 'chatgpt.sidebarView' || focusedView == 'chatgpt.sidebarSecondaryView' || focusedView == 'chatgpt.sidebarView' || chatSessionType == 'openai-codex'",
+        "when": "inChat || chatInputHasFocus || chatFocus || focusedView == 'workbench.panel.chat.view.copilot' || focusedView == 'workbench.panel.chat'",
         "args": {
-          "origin": "codex"
+          "origin": "copilot"
         }
       },
       {
         "command": "spellAssistant.quickFixWord",
         "key": "alt+q",
-        "when": "activeAuxiliary == 'antigravity.agentViewContainerId' || antigravity.agentSidePanel.isFocused || antigravity.isAgentModeInputBoxFocused || focusedView == 'antigravity.agentSidePanel' || focusedView == 'antigravity.agentPanel'",
+        "when": "antigravity.agentSidePanel.isFocused || antigravity.isAgentModeInputBoxFocused || focusedView == 'antigravity.agentSidePanel' || focusedView == 'antigravity.agentPanel' || (activeAuxiliary == 'antigravity.agentViewContainerId' && !inChat && !chatInputHasFocus && !editorTextFocus)",
         "args": {
           "origin": "antigravity"
         }
@@ -135,9 +135,9 @@
       {
         "command": "spellAssistant.quickFixWord",
         "key": "alt+q",
-        "when": "inChat || chatInputHasFocus || chatFocus || focusedView == 'workbench.panel.chat.view.copilot' || focusedView == 'workbench.panel.chat'",
+        "when": "!inChat && !chatInputHasFocus && !chatFocus && !antigravity.agentSidePanel.isFocused && !antigravity.isAgentModeInputBoxFocused && (focusedView == 'chatgpt.sidebarSecondaryView' || focusedView == 'chatgpt.sidebarView' || webviewId == 'chatgpt.sidebarSecondaryView' || webviewId == 'chatgpt.sidebarView' || chatSessionType == 'openai-codex' || (!editorTextFocus && (activeAuxiliary == 'workbench.view.extension.codexSecondaryViewContainer' || activeViewlet == 'workbench.view.extension.codexViewContainer')))",
         "args": {
-          "origin": "copilot"
+          "origin": "codex"
         }
       },
       {
@@ -155,7 +155,23 @@
       {
         "command": "spellAssistant.openPromptChecker",
         "key": "ctrl+alt+s",
-        "when": "activeAuxiliary == 'workbench.view.extension.codexSecondaryViewContainer' || activeViewlet == 'workbench.view.extension.codexViewContainer' || webviewId == 'chatgpt.sidebarSecondaryView' || webviewId == 'chatgpt.sidebarView' || focusedView == 'chatgpt.sidebarSecondaryView' || focusedView == 'chatgpt.sidebarView' || chatSessionType == 'openai-codex'",
+        "when": "inChat || chatInputHasFocus || chatFocus || focusedView == 'workbench.panel.chat.view.copilot' || focusedView == 'workbench.panel.chat'",
+        "args": {
+          "origin": "copilot"
+        }
+      },
+      {
+        "command": "spellAssistant.openPromptChecker",
+        "key": "ctrl+alt+s",
+        "when": "antigravity.agentSidePanel.isFocused || antigravity.isAgentModeInputBoxFocused || focusedView == 'antigravity.agentSidePanel' || focusedView == 'antigravity.agentPanel' || (activeAuxiliary == 'antigravity.agentViewContainerId' && !inChat && !chatInputHasFocus && !editorTextFocus)",
+        "args": {
+          "origin": "antigravity"
+        }
+      },
+      {
+        "command": "spellAssistant.openPromptChecker",
+        "key": "ctrl+alt+s",
+        "when": "!inChat && !chatInputHasFocus && !chatFocus && !antigravity.agentSidePanel.isFocused && !antigravity.isAgentModeInputBoxFocused && (focusedView == 'chatgpt.sidebarSecondaryView' || focusedView == 'chatgpt.sidebarView' || webviewId == 'chatgpt.sidebarSecondaryView' || webviewId == 'chatgpt.sidebarView' || chatSessionType == 'openai-codex' || (!editorTextFocus && (activeAuxiliary == 'workbench.view.extension.codexSecondaryViewContainer' || activeViewlet == 'workbench.view.extension.codexViewContainer')))",
         "args": {
           "origin": "codex"
         }
@@ -163,9 +179,9 @@
       {
         "command": "spellAssistant.openPromptChecker",
         "key": "ctrl+alt+s",
-        "when": "activeAuxiliary == 'antigravity.agentViewContainerId' || antigravity.agentSidePanel.isFocused || antigravity.isAgentModeInputBoxFocused || focusedView == 'antigravity.agentSidePanel' || focusedView == 'antigravity.agentPanel'",
+        "when": "editorTextFocus",
         "args": {
-          "origin": "antigravity"
+          "origin": "editor"
         }
       },
       {
@@ -175,7 +191,23 @@
       {
         "command": "spellAssistant.openPromptChecker",
         "key": "shift+alt+q",
-        "when": "activeAuxiliary == 'workbench.view.extension.codexSecondaryViewContainer' || activeViewlet == 'workbench.view.extension.codexViewContainer' || webviewId == 'chatgpt.sidebarSecondaryView' || webviewId == 'chatgpt.sidebarView' || focusedView == 'chatgpt.sidebarSecondaryView' || focusedView == 'chatgpt.sidebarView' || chatSessionType == 'openai-codex'",
+        "when": "inChat || chatInputHasFocus || chatFocus || focusedView == 'workbench.panel.chat.view.copilot' || focusedView == 'workbench.panel.chat'",
+        "args": {
+          "origin": "copilot"
+        }
+      },
+      {
+        "command": "spellAssistant.openPromptChecker",
+        "key": "shift+alt+q",
+        "when": "antigravity.agentSidePanel.isFocused || antigravity.isAgentModeInputBoxFocused || focusedView == 'antigravity.agentSidePanel' || focusedView == 'antigravity.agentPanel' || (activeAuxiliary == 'antigravity.agentViewContainerId' && !inChat && !chatInputHasFocus && !editorTextFocus)",
+        "args": {
+          "origin": "antigravity"
+        }
+      },
+      {
+        "command": "spellAssistant.openPromptChecker",
+        "key": "shift+alt+q",
+        "when": "!inChat && !chatInputHasFocus && !chatFocus && !antigravity.agentSidePanel.isFocused && !antigravity.isAgentModeInputBoxFocused && (focusedView == 'chatgpt.sidebarSecondaryView' || focusedView == 'chatgpt.sidebarView' || webviewId == 'chatgpt.sidebarSecondaryView' || webviewId == 'chatgpt.sidebarView' || chatSessionType == 'openai-codex' || (!editorTextFocus && (activeAuxiliary == 'workbench.view.extension.codexSecondaryViewContainer' || activeViewlet == 'workbench.view.extension.codexViewContainer')))",
         "args": {
           "origin": "codex"
         }
@@ -183,9 +215,9 @@
       {
         "command": "spellAssistant.openPromptChecker",
         "key": "shift+alt+q",
-        "when": "activeAuxiliary == 'antigravity.agentViewContainerId' || antigravity.agentSidePanel.isFocused || antigravity.isAgentModeInputBoxFocused || focusedView == 'antigravity.agentSidePanel' || focusedView == 'antigravity.agentPanel'",
+        "when": "editorTextFocus",
         "args": {
-          "origin": "antigravity"
+          "origin": "editor"
         }
       },
       {

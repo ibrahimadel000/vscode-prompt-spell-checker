@@ -177,20 +177,39 @@ export async function activate(context: vscode.ExtensionContext) {
 
 
 function detectActiveChatOrigin(storageUri?: vscode.Uri): 'codex' | 'antigravity' | 'copilot' | undefined {
-    if (!storageUri) return undefined;
+    const isAntigravity = /antigravity/i.test(vscode.env.appName || '');
+    if (isAntigravity) return 'antigravity';
+
+    if (!storageUri) return 'copilot';
     try {
         const dbPath = path.join(storageUri.fsPath, '..', 'state.vscdb');
-        if (!fs.existsSync(dbPath)) return undefined;
+        if (!fs.existsSync(dbPath)) return 'copilot';
 
         try {
             const { DatabaseSync } = require('node:sqlite');
             const db = new DatabaseSync(dbPath, { readOnly: true });
-            const row = db.prepare("SELECT value FROM ItemTable WHERE key = 'workbench.auxiliarybar.activepanelid'").get();
-            if (row && typeof row.value === 'string') {
-                const val = row.value.toLowerCase();
+
+            // 1. Check primary sidebar viewlet (e.g. Copilot chat viewlet)
+            const viewletRow = db.prepare("SELECT value FROM ItemTable WHERE key = 'workbench.sidebar.activeviewletid'").get();
+            if (viewletRow && typeof viewletRow.value === 'string') {
+                const val = viewletRow.value.toLowerCase();
+                if (val.includes('chat') || val.includes('copilot')) return 'copilot';
                 if (val.includes('codex')) return 'codex';
-                if (val.includes('antigravity')) return 'antigravity';
-                if (val.includes('chat')) return 'copilot';
+            }
+
+            // 2. Check bottom panel (e.g. Copilot chat panel)
+            const panelRow = db.prepare("SELECT value FROM ItemTable WHERE key = 'workbench.panel.activepanelid'").get();
+            if (panelRow && typeof panelRow.value === 'string') {
+                const val = panelRow.value.toLowerCase();
+                if (val.includes('chat') || val.includes('copilot')) return 'copilot';
+            }
+
+            // 3. Check auxiliary bar
+            const auxRow = db.prepare("SELECT value FROM ItemTable WHERE key = 'workbench.auxiliarybar.activepanelid'").get();
+            if (auxRow && typeof auxRow.value === 'string') {
+                const val = auxRow.value.toLowerCase();
+                if (val.includes('chat') || val.includes('copilot')) return 'copilot';
+                if (val.includes('codex')) return 'codex';
             }
         } catch {}
 
@@ -199,11 +218,11 @@ function detectActiveChatOrigin(storageUri?: vscode.Uri): 'codex' | 'antigravity
         const idx = buf.lastIndexOf(marker);
         if (idx !== -1) {
             const snippet = buf.subarray(idx, idx + 100).toString('utf8').toLowerCase();
+            if (snippet.includes('chat') || snippet.includes('copilot')) return 'copilot';
             if (snippet.includes('codex')) return 'codex';
-            if (snippet.includes('antigravity')) return 'antigravity';
         }
     } catch (e) {}
-    return undefined;
+    return 'copilot';
 }
 
     // 💡 Alt+Q: Select text → open Prompt Checker panel with it directly
