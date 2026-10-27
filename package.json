@@ -2,7 +2,7 @@
   "name": "ai-chat-spell-assistant",
   "displayName": "AI Chat Spell Assistant",
   "description": "Intelligent spell & prompt corrector for AI coding assistant chats (Copilot, Claude, ChatGPT, Antigravity). Instant auto-fix & interactive review.",
-  "version": "0.6.7",
+  "version": "0.6.8",
   "publisher": "ibrahim-adel",
   "icon": "assets/icon.png",
   "license": "MIT",

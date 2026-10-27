@@ -13,12 +13,12 @@
 
 <br />
 
-**Code-safe spell check for Antigravity, Codex, Claude & Copilot ai chat —fixing typos before hitting Enter without breaking variables, functions, or syntax.**
+**Code-safe spell check for Cursor, Antigravity, Codex, Claude & Copilot ai chat —fixing typos before hitting Enter without breaking variables, functions, or syntax.**
 
 </div>
 
 > [!IMPORTANT]
-> **Stay Updated**: Ensure you are running the latest release to take full advantage of AI-powered contextual proofreading.
+> **Stay on the Latest Release**: Updates are frequently rolled out to fix chat bugs and improve performance. Keep your extension updated to ensure everything runs smoothly with zero issues!
 
 ---
 
@@ -60,7 +60,7 @@ Standard spell checkers only scan open files in your workspace—they completely
 
 ## 🚀 Getting Started
 
-1. Open **VS Code** (or **Antigravity IDE**).
+1. Open **Cursor**, **VS Code**, or **Antigravity IDE**.
 2. Go to the Extensions panel (`Ctrl+Shift+X` or `Cmd+Shift+X`).
 3. Search for **`AI Chat Spell Assistant`** and click **Install**.
 4. In any chat input, select your prompt text and press <kbd>Alt&nbsp;+&nbsp;W</kbd>.
