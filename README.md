@@ -6,14 +6,39 @@
 
 ### Stop burning tokens on broken prompts.
 
-[![VS Code Extension](https://img.shields.io/badge/VS_Code-Extension-007ACC?style=for-the-badge&logo=visual-studio-code&logoColor=white)](https://marketplace.visualstudio.com/items?itemName=ibrahim-adel.ai-chat-spell-assistant)
-[![Open VSX](https://img.shields.io/badge/Open%20VSX-Compatible-purple?style=for-the-badge)](https://open-vsx.org/)
-[![Publisher](https://img.shields.io/badge/Publisher-ibrahim--adel-24292e?style=for-the-badge)](https://marketplace.visualstudio.com/items?itemName=ibrahim-adel.ai-chat-spell-assistant)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
+<img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.gif" width="100%" height="3px" />
+<br /><br />
 
+<!-- One-Click Install Action Buttons -->
+<a href="https://open-vsx.org/extension/ibrahim-adel/ai-chat-spell-assistant">
+  <img src="https://img.shields.io/badge/Install%20in-Antigravity%20IDE-8A2BE2?style=for-the-badge&logo=eclipseide&logoColor=white" alt="Install in Antigravity" height="38" />
+</a>
+&nbsp;&nbsp;
+<a href="https://marketplace.visualstudio.com/items?itemName=ibrahim-adel.ai-chat-spell-assistant">
+  <img src="https://img.shields.io/badge/Install%20in-VS%20Code-007ACC?style=for-the-badge&logo=visual-studio-code&logoColor=white" alt="Install in VS Code" height="38" />
+</a>
+
+<br /><br />
+
+<!-- Live Dynamic Badges -->
+<a href="https://open-vsx.org/extension/ibrahim-adel/ai-chat-spell-assistant">
+  <img src="https://img.shields.io/open-vsx/v/ibrahim-adel/ai-chat-spell-assistant?style=flat-square&logo=openvsx&label=Open%20VSX&color=purple" alt="Open VSX Version" />
+</a>
+<a href="https://open-vsx.org/extension/ibrahim-adel/ai-chat-spell-assistant">
+  <img src="https://img.shields.io/open-vsx/dt/ibrahim-adel/ai-chat-spell-assistant?style=flat-square&logo=openvsx&label=Downloads&color=success" alt="Open VSX Downloads" />
+</a>
+<a href="https://marketplace.visualstudio.com/items?itemName=ibrahim-adel.ai-chat-spell-assistant">
+  <img src="https://img.shields.io/badge/Publisher-ibrahim--adel-24292e?style=flat-square" alt="Publisher" />
+</a>
+<a href="LICENSE">
+  <img src="https://img.shields.io/badge/License-MIT-blue?style=flat-square" alt="License: MIT" />
+</a>
+
+<br /><br />
+<img src="https://raw.githubusercontent.com/andreasbm/readme/master/assets/lines/rainbow.gif" width="100%" height="3px" />
 <br />
 
-**Code-safe spell check for Cursor, Antigravity, Codex, Claude & Copilot ai chat —fixing typos before hitting Enter without breaking variables, functions, or syntax.**
+**Code-safe spell check for Cursor, Antigravity, Codex, Claude & Copilot AI chat — fixing typos before hitting Enter without breaking variables, functions, or syntax.**
 
 </div>
 
@@ -60,26 +85,8 @@ Standard spell checkers only scan open files in your workspace—they completely
 
 ## 🚀 Getting Started
 
-1. Open **Cursor**, **VS Code**, or **Antigravity IDE**.
+1. Open **Antigravity IDE**, **VS Code**, or **Cursor**.
 2. Go to the Extensions panel (`Ctrl+Shift+X` or `Cmd+Shift+X`).
-3. Search for **`AI Chat Spell Assistant`** and click **Install**.
-4. In any chat input, select your prompt text and press <kbd>Alt&nbsp;+&nbsp;W</kbd>.
-
----
-
-## 💬 Need Help or Have Feedback? Message Me!
-
-If you encounter any issues, have an idea for improvement, or need assistance, feel free to text or email me directly:
-
-- 📧 **Direct Email**: [ibrahimalsharjabi69@gmail.com](mailto:ibrahimalsharjabi69@gmail.com?subject=AI%20Chat%20Spell%20Assistant%20Feedback%20%2F%20Issue)
-- 🐛 **Report a Bug**: [Open an issue on GitHub](https://github.com/ibrahimadel000/vscode-prompt-spell-checker/issues/new)
-
-I check messages regularly and respond promptly to help resolve any issues!
-
----
-
-<div align="center">
-
-Maintained by **ibrahim-adel** • Released under the [MIT License](LICENSE)
-
-</div>
+3. Search for:
+   ```text
+   @id:ibrahim-adel.ai-chat-spell-assistant
